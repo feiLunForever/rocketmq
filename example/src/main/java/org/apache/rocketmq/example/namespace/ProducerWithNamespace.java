@@ -20,8 +20,6 @@ import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
 
-import java.nio.charset.StandardCharsets;
-
 public class ProducerWithNamespace {
 
     public static final String NAMESPACE = "InstanceTest";
@@ -38,7 +36,7 @@ public class ProducerWithNamespace {
         producer.setNamesrvAddr(DEFAULT_NAMESRVADDR);
         producer.start();
         for (int i = 0; i < MESSAGE_COUNT; i++) {
-            Message message = new Message(TOPIC, TAG, "Hello world".getBytes(StandardCharsets.UTF_8));
+            Message message = new Message(TOPIC, TAG, "Hello world".getBytes());
             try {
                 SendResult result = producer.send(message);
                 System.out.printf("Topic:%s send success, misId is:%s%n", message.getTopic(), result.getMsgId());
@@ -46,6 +44,5 @@ public class ProducerWithNamespace {
                 e.printStackTrace();
             }
         }
-        producer.shutdown();
     }
 }

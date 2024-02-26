@@ -74,7 +74,7 @@ public class PrintMessageByQueueCommand implements SubCommand {
         if (!calByTag)
             return;
 
-        List<TagCountBean> list = new ArrayList<>();
+        List<TagCountBean> list = new ArrayList<TagCountBean>();
         for (Map.Entry<String, AtomicLong> entry : tagCalmap.entrySet()) {
             TagCountBean tagBean = new TagCountBean(entry.getKey(), entry.getValue());
             list.add(tagBean);
@@ -193,7 +193,7 @@ public class PrintMessageByQueueCommand implements SubCommand {
                 maxOffset = consumer.searchOffset(mq, timeValue);
             }
 
-            final Map<String, AtomicLong> tagCalmap = new HashMap<>();
+            final Map<String, AtomicLong> tagCalmap = new HashMap<String, AtomicLong>();
             READQ:
             for (long offset = minOffset; offset < maxOffset; ) {
                 try {

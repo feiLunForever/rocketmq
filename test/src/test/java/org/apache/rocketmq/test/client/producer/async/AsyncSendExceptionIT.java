@@ -18,14 +18,13 @@
 package org.apache.rocketmq.test.client.producer.async;
 
 import java.util.List;
+import org.apache.log4j.Logger;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.MessageQueueSelector;
 import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.consumer.tag.TagMessageWith1ConsumerIT;
 import org.apache.rocketmq.test.factory.ProducerFactory;
@@ -39,7 +38,7 @@ import org.junit.Test;
 import static com.google.common.truth.Truth.assertThat;
 
 public class AsyncSendExceptionIT extends BaseConf {
-    private static Logger logger = LoggerFactory.getLogger(TagMessageWith1ConsumerIT.class);
+    private static Logger logger = Logger.getLogger(TagMessageWith1ConsumerIT.class);
     private static boolean sendFail = false;
     private String topic = null;
 
@@ -57,7 +56,7 @@ public class AsyncSendExceptionIT extends BaseConf {
     @Test
     public void testSendCallBackNull() throws Exception {
         Message msg = new Message(topic, RandomUtils.getStringByUUID().getBytes());
-        DefaultMQProducer producer = ProducerFactory.getRMQProducer(NAMESRV_ADDR);
+        DefaultMQProducer producer = ProducerFactory.getRMQProducer(nsAddr);
         SendCallback sendCallback = null;
         producer.send(msg, sendCallback);
     }
@@ -65,7 +64,7 @@ public class AsyncSendExceptionIT extends BaseConf {
     @Test
     public void testSendMQNull() throws Exception {
         Message msg = new Message(topic, RandomUtils.getStringByUUID().getBytes());
-        DefaultMQProducer producer = ProducerFactory.getRMQProducer(NAMESRV_ADDR);
+        DefaultMQProducer producer = ProducerFactory.getRMQProducer(nsAddr);
         MessageQueue messageQueue = null;
         producer.send(msg, messageQueue, SendCallBackFactory.getSendCallBack());
     }
@@ -73,7 +72,7 @@ public class AsyncSendExceptionIT extends BaseConf {
     @Test
     public void testSendSelectorNull() throws Exception {
         Message msg = new Message(topic, RandomUtils.getStringByUUID().getBytes());
-        DefaultMQProducer producer = ProducerFactory.getRMQProducer(NAMESRV_ADDR);
+        DefaultMQProducer producer = ProducerFactory.getRMQProducer(nsAddr);
         MessageQueueSelector selector = null;
         producer.send(msg, selector, 100, SendCallBackFactory.getSendCallBack());
     }
@@ -81,7 +80,7 @@ public class AsyncSendExceptionIT extends BaseConf {
     @Test
     public void testSelectorThrowsException() throws Exception {
         Message msg = new Message(topic, RandomUtils.getStringByUUID().getBytes());
-        DefaultMQProducer producer = ProducerFactory.getRMQProducer(NAMESRV_ADDR);
+        DefaultMQProducer producer = ProducerFactory.getRMQProducer(nsAddr);
         producer.send(msg, new MessageQueueSelector() {
             @Override
             public MessageQueue select(List<MessageQueue> list, Message message, Object o) {
@@ -95,9 +94,9 @@ public class AsyncSendExceptionIT extends BaseConf {
     public void testQueueIdBigThanQueueNum() throws Exception {
         int queueId = 100;
         sendFail = false;
-        MessageQueue mq = new MessageQueue(topic, BROKER1_NAME, queueId);
+        MessageQueue mq = new MessageQueue(topic, broker1Name, queueId);
         Message msg = new Message(topic, RandomUtils.getStringByUUID().getBytes());
-        DefaultMQProducer producer = ProducerFactory.getRMQProducer(NAMESRV_ADDR);
+        DefaultMQProducer producer = ProducerFactory.getRMQProducer(nsAddr);
 
         producer.send(msg, mq, new SendCallback() {
             @Override
@@ -123,9 +122,9 @@ public class AsyncSendExceptionIT extends BaseConf {
     public void testQueueIdSmallZero() throws Exception {
         int queueId = -100;
         sendFail = true;
-        MessageQueue mq = new MessageQueue(topic, BROKER1_NAME, queueId);
+        MessageQueue mq = new MessageQueue(topic, broker1Name, queueId);
         Message msg = new Message(topic, RandomUtils.getStringByUUID().getBytes());
-        DefaultMQProducer producer = ProducerFactory.getRMQProducer(NAMESRV_ADDR);
+        DefaultMQProducer producer = ProducerFactory.getRMQProducer(nsAddr);
 
         producer.send(msg, mq, new SendCallback() {
             @Override

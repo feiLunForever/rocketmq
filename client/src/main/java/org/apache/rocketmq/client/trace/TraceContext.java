@@ -124,14 +124,13 @@ public class TraceContext implements Comparable<TraceContext> {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder(1024);
-        sb.append("TraceContext{").append(traceType).append("_").append(groupName).append("_")
-            .append(regionId).append("_").append(isSuccess).append("_");
+        sb.append(traceType).append("_").append(groupName)
+            .append("_").append(regionId).append("_").append(isSuccess).append("_");
         if (traceBeans != null && traceBeans.size() > 0) {
             for (TraceBean bean : traceBeans) {
-                sb.append(bean.getMsgId()).append("_").append(bean.getTopic()).append("_");
+                sb.append(bean.getMsgId() + "_" + bean.getTopic() + "_");
             }
         }
-        sb.append('}');
-        return sb.toString();
+        return "TraceContext{" + sb.toString() + '}';
     }
 }

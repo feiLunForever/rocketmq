@@ -20,6 +20,8 @@ package org.apache.rocketmq.store.ha;
 import org.junit.Assert;
 import org.junit.Test;
 
+import static org.junit.Assert.*;
+
 public class WaitNotifyObjectTest {
     @Test
     public void removeFromWaitingThreadTable() throws Exception {

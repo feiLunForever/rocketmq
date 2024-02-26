@@ -41,7 +41,7 @@ public class ThreadLocalIndexTest {
     public void testIncrementAndGet3() throws Exception {
         ThreadLocalIndex localIndex = new ThreadLocalIndex();
         Field threadLocalIndexField = ThreadLocalIndex.class.getDeclaredField("threadLocalIndex");
-        ThreadLocal<Integer> mockThreadLocal = new ThreadLocal<>();
+        ThreadLocal<Integer> mockThreadLocal = new ThreadLocal<Integer>();
         mockThreadLocal.set(Integer.MAX_VALUE);
 
         threadLocalIndexField.setAccessible(true);

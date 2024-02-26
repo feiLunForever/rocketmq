@@ -18,7 +18,7 @@ package org.apache.rocketmq.store;
 
 import java.nio.ByteBuffer;
 import org.apache.rocketmq.common.message.MessageExtBatch;
-import org.apache.rocketmq.common.message.MessageExtBrokerInner;
+import org.apache.rocketmq.store.CommitLog.PutMessageContext;
 
 /**
  * Write messages callback interface
@@ -26,7 +26,7 @@ import org.apache.rocketmq.common.message.MessageExtBrokerInner;
 public interface AppendMessageCallback {
 
     /**
-     * After message serialization, write MappedByteBuffer
+     * After message serialization, write MapedByteBuffer
      *
      * @return How many bytes to write
      */
@@ -34,7 +34,7 @@ public interface AppendMessageCallback {
         final int maxBlank, final MessageExtBrokerInner msg, PutMessageContext putMessageContext);
 
     /**
-     * After batched message serialization, write MappedByteBuffer
+     * After batched message serialization, write MapedByteBuffer
      *
      * @param messageExtBatch, backed up by a byte array
      * @return How many bytes to write

@@ -20,11 +20,11 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Trace transferring bean
+ * Trace transfering bean
  */
 public class TraceTransferBean {
     private String transData;
-    private Set<String> transKey = new HashSet<>();
+    private Set<String> transKey = new HashSet<String>();
 
     public String getTransData() {
         return transData;

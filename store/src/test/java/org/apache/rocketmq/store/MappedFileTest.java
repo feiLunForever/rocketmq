@@ -22,8 +22,8 @@ package org.apache.rocketmq.store;
 
 import java.io.File;
 import java.io.IOException;
+
 import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.store.logfile.DefaultMappedFile;
 import org.junit.After;
 import org.junit.Test;
 
@@ -34,7 +34,7 @@ public class MappedFileTest {
 
     @Test
     public void testSelectMappedBuffer() throws IOException {
-        DefaultMappedFile mappedFile = new DefaultMappedFile("target/unit_test_store/MappedFileTest/000", 1024 * 64);
+        MappedFile mappedFile = new MappedFile("target/unit_test_store/MappedFileTest/000", 1024 * 64);
         boolean result = mappedFile.appendMessage(storeMessage.getBytes());
         assertThat(result).isTrue();
 
@@ -53,7 +53,7 @@ public class MappedFileTest {
     }
 
     @After
-    public void destroy() {
+    public void destory() {
         File file = new File("target/unit_test_store");
         UtilAll.deleteFile(file);
     }

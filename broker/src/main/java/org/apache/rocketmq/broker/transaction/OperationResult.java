@@ -25,6 +25,10 @@ public class OperationResult {
 
     private String responseRemark;
 
+    public MessageExt getPrepareMessage() {
+        return prepareMessage;
+    }
+
     public void setPrepareMessage(MessageExt prepareMessage) {
         this.prepareMessage = prepareMessage;
     }
@@ -43,9 +47,5 @@ public class OperationResult {
 
     public void setResponseRemark(String responseRemark) {
         this.responseRemark = responseRemark;
-    }
-
-    public MessageExt getPrepareMessage() {
-        return prepareMessage;
     }
 }

@@ -94,6 +94,7 @@ public class RocketMQSerializable {
         return out.writerIndex() - beginIndex;
     }
 
+
     public static byte[] rocketMQProtocolEncode(RemotingCommand cmd) {
         // String remark
         byte[] remarkBytes = null;
@@ -202,8 +203,7 @@ public class RocketMQSerializable {
         return length;
     }
 
-    public static RemotingCommand rocketMQProtocolDecode(final ByteBuf headerBuffer,
-        int headerLen) throws RemotingCommandException {
+    public static RemotingCommand rocketMQProtocolDecode(final ByteBuf headerBuffer, int headerLen) throws RemotingCommandException {
         RemotingCommand cmd = new RemotingCommand();
         // int code(~32767)
         cmd.setCode(headerBuffer.readShort());
@@ -231,7 +231,7 @@ public class RocketMQSerializable {
 
     public static HashMap<String, String> mapDeserialize(ByteBuf byteBuffer, int len) throws RemotingCommandException {
 
-        HashMap<String, String> map = new HashMap<>(128);
+        HashMap<String, String> map = new HashMap<>();
         int endIndex = byteBuffer.readerIndex() + len;
 
         while (byteBuffer.readerIndex() < endIndex) {
@@ -240,5 +240,18 @@ public class RocketMQSerializable {
             map.put(k, v);
         }
         return map;
+    }
+
+    public static boolean isBlank(String str) {
+        int strLen;
+        if (str == null || (strLen = str.length()) == 0) {
+            return true;
+        }
+        for (int i = 0; i < strLen; i++) {
+            if (!Character.isWhitespace(str.charAt(i))) {
+                return false;
+            }
+        }
+        return true;
     }
 }

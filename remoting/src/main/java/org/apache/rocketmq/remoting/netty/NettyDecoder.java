@@ -16,18 +16,17 @@
  */
 package org.apache.rocketmq.remoting.netty;
 
-import com.google.common.base.Stopwatch;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
-import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.remoting.common.RemotingHelper;
+import org.apache.rocketmq.remoting.common.RemotingUtil;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 
 public class NettyDecoder extends LengthFieldBasedFrameDecoder {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.ROCKETMQ_REMOTING_NAME);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(RemotingHelper.ROCKETMQ_REMOTING);
 
     private static final int FRAME_MAX_LENGTH =
         Integer.parseInt(System.getProperty("com.rocketmq.remoting.frameMaxLength", "16777216"));
@@ -39,18 +38,15 @@ public class NettyDecoder extends LengthFieldBasedFrameDecoder {
     @Override
     public Object decode(ChannelHandlerContext ctx, ByteBuf in) throws Exception {
         ByteBuf frame = null;
-        Stopwatch timer = Stopwatch.createStarted();
         try {
             frame = (ByteBuf) super.decode(ctx, in);
             if (null == frame) {
                 return null;
             }
-            RemotingCommand cmd = RemotingCommand.decode(frame);
-            cmd.setProcessTimer(timer);
-            return cmd;
+            return RemotingCommand.decode(frame);
         } catch (Exception e) {
             log.error("decode exception, " + RemotingHelper.parseChannelRemoteAddr(ctx.channel()), e);
-            RemotingHelper.closeChannel(ctx.channel());
+            RemotingUtil.closeChannel(ctx.channel());
         } finally {
             if (null != frame) {
                 frame.release();

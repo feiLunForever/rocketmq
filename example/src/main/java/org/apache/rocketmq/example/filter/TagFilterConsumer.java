@@ -16,6 +16,7 @@
  */
 package org.apache.rocketmq.example.filter;
 
+import java.io.IOException;
 import java.util.List;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
@@ -26,7 +27,7 @@ import org.apache.rocketmq.common.message.MessageExt;
 
 public class TagFilterConsumer {
 
-    public static void main(String[] args) throws MQClientException {
+    public static void main(String[] args) throws InterruptedException, MQClientException, IOException {
 
         DefaultMQPushConsumer consumer = new DefaultMQPushConsumer("please_rename_unique_group_name");
 

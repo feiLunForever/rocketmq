@@ -108,7 +108,7 @@ public class Producer {
 
 ### 字段详细信息
 
-- [producerGroup](https://rocketmq.apache.org/docs/introduction/02concepts)
+- [producerGroup](http://rocketmq.apache.org/docs/core-concept/)
 
 	`private String producerGroup`
 	

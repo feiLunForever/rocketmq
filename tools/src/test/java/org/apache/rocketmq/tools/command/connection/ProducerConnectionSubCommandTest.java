@@ -16,12 +16,11 @@
  */
 package org.apache.rocketmq.tools.command.connection;
 
-import java.util.HashSet;
 import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
-import org.apache.rocketmq.remoting.protocol.body.Connection;
-import org.apache.rocketmq.remoting.protocol.body.ProducerConnection;
+import org.apache.commons.cli.PosixParser;
+import org.apache.rocketmq.common.protocol.body.Connection;
+import org.apache.rocketmq.common.protocol.body.ProducerConnection;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.tools.command.SubCommandException;
 import org.apache.rocketmq.tools.command.server.NameServerMocker;
@@ -30,9 +29,15 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.HashSet;
+
 import static org.mockito.Mockito.mock;
 
 public class ProducerConnectionSubCommandTest {
+
+    private static final int NAME_SERVER_PORT = 45677;
+
+    private static final int BROKER_PORT = 45676;
 
     private ServerResponseMocker brokerMocker;
 
@@ -41,7 +46,7 @@ public class ProducerConnectionSubCommandTest {
     @Before
     public void before() {
         brokerMocker = startOneBroker();
-        nameServerMocker = NameServerMocker.startByDefaultConf(brokerMocker.listenPort());
+        nameServerMocker = NameServerMocker.startByDefaultConf(NAME_SERVER_PORT, BROKER_PORT);
     }
 
     @After
@@ -54,10 +59,9 @@ public class ProducerConnectionSubCommandTest {
     public void testExecute() throws SubCommandException {
         ProducerConnectionSubCommand cmd = new ProducerConnectionSubCommand();
         Options options = ServerUtil.buildCommandlineOptions(new Options());
-        String[] subargs = new String[] {"-g default-producer-group", "-t unit-test", String.format("-n localhost:%d", nameServerMocker.listenPort())};
+        String[] subargs = new String[] {"-g default-producer-group", "-t unit-test"};
         final CommandLine commandLine =
-            ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs,
-                cmd.buildCommandlineOptions(options), new DefaultParser());
+            ServerUtil.parseCmdLine("mqadmin " + cmd.commandName(), subargs, cmd.buildCommandlineOptions(options), new PosixParser());
         cmd.execute(commandLine, options, null);
     }
 
@@ -69,6 +73,6 @@ public class ProducerConnectionSubCommandTest {
         producerConnection.setConnectionSet(connectionSet);
 
         // start broker
-        return ServerResponseMocker.startServer(producerConnection.encode());
+        return ServerResponseMocker.startServer(BROKER_PORT, producerConnection.encode());
     }
 }

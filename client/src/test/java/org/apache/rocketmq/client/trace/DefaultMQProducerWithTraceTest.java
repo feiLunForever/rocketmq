@@ -17,12 +17,6 @@
 
 package org.apache.rocketmq.client.trace;
 
-import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.exception.MQBrokerException;
 import org.apache.rocketmq.client.exception.MQClientException;
@@ -38,12 +32,12 @@ import org.apache.rocketmq.client.producer.SendCallback;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.SendStatus;
 import org.apache.rocketmq.common.message.Message;
+import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.route.BrokerData;
+import org.apache.rocketmq.common.protocol.route.QueueData;
+import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.exception.RemotingException;
-import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
-import org.apache.rocketmq.remoting.protocol.route.BrokerData;
-import org.apache.rocketmq.remoting.protocol.route.QueueData;
-import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -53,11 +47,14 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.nullable;
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -147,7 +144,7 @@ public class DefaultMQProducerWithTraceTest {
 
     }
 
-
+    
     @Test
     public void testProducerWithTraceTLS() {
         DefaultMQProducer producer = new DefaultMQProducer(producerGroupTemp, true);
@@ -155,7 +152,7 @@ public class DefaultMQProducerWithTraceTest {
         AsyncTraceDispatcher asyncTraceDispatcher = (AsyncTraceDispatcher) producer.getTraceDispatcher();
         Assert.assertTrue(asyncTraceDispatcher.getTraceProducer().isUseTLS());
     }
-
+    
     @After
     public void terminate() {
         producer.shutdown();
@@ -164,18 +161,18 @@ public class DefaultMQProducerWithTraceTest {
     public static TopicRouteData createTopicRoute() {
         TopicRouteData topicRouteData = new TopicRouteData();
 
-        topicRouteData.setFilterServerTable(new HashMap<>());
-        List<BrokerData> brokerDataList = new ArrayList<>();
+        topicRouteData.setFilterServerTable(new HashMap<String, List<String>>());
+        List<BrokerData> brokerDataList = new ArrayList<BrokerData>();
         BrokerData brokerData = new BrokerData();
         brokerData.setBrokerName("BrokerA");
         brokerData.setCluster("DefaultCluster");
-        HashMap<Long, String> brokerAddrs = new HashMap<>();
+        HashMap<Long, String> brokerAddrs = new HashMap<Long, String>();
         brokerAddrs.put(0L, "127.0.0.1:10911");
         brokerData.setBrokerAddrs(brokerAddrs);
         brokerDataList.add(brokerData);
         topicRouteData.setBrokerDatas(brokerDataList);
 
-        List<QueueData> queueDataList = new ArrayList<>();
+        List<QueueData> queueDataList = new ArrayList<QueueData>();
         QueueData queueData = new QueueData();
         queueData.setBrokerName("BrokerA");
         queueData.setPerm(6);
@@ -200,18 +197,18 @@ public class DefaultMQProducerWithTraceTest {
     public static TopicRouteData createTraceTopicRoute() {
         TopicRouteData topicRouteData = new TopicRouteData();
 
-        topicRouteData.setFilterServerTable(new HashMap<>());
-        List<BrokerData> brokerDataList = new ArrayList<>();
+        topicRouteData.setFilterServerTable(new HashMap<String, List<String>>());
+        List<BrokerData> brokerDataList = new ArrayList<BrokerData>();
         BrokerData brokerData = new BrokerData();
         brokerData.setBrokerName("broker-trace");
         brokerData.setCluster("DefaultCluster");
-        HashMap<Long, String> brokerAddrs = new HashMap<>();
+        HashMap<Long, String> brokerAddrs = new HashMap<Long, String>();
         brokerAddrs.put(0L, "127.0.0.1:10912");
         brokerData.setBrokerAddrs(brokerAddrs);
         brokerDataList.add(brokerData);
         topicRouteData.setBrokerDatas(brokerDataList);
 
-        List<QueueData> queueDataList = new ArrayList<>();
+        List<QueueData> queueDataList = new ArrayList<QueueData>();
         QueueData queueData = new QueueData();
         queueData.setBrokerName("broker-trace");
         queueData.setPerm(6);

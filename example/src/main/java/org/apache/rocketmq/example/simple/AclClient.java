@@ -16,7 +16,6 @@
  */
 package org.apache.rocketmq.example.simple;
 
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,7 +43,7 @@ import org.apache.rocketmq.remoting.common.RemotingHelper;
 
 public class AclClient {
 
-    private static final Map<MessageQueue, Long> OFFSE_TABLE = new HashMap<>();
+    private static final Map<MessageQueue, Long> OFFSE_TABLE = new HashMap<MessageQueue, Long>();
 
     private static final String ACL_ACCESS_KEY = "RocketMQ";
 
@@ -146,7 +145,7 @@ public class AclClient {
             return;
         for (MessageExt m : msg) {
             if (m != null) {
-                System.out.printf("msgId : %s  body : %s  \n\r", m.getMsgId(), new String(m.getBody(), StandardCharsets.UTF_8));
+                System.out.printf("msgId : %s  body : %s  \n\r", m.getMsgId(), new String(m.getBody()));
             }
         }
     }

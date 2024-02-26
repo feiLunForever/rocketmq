@@ -101,7 +101,7 @@ public class PushConsumerImpl implements PushConsumer {
 
     @Override
     public boolean isSuspended() {
-        return this.rocketmqPushConsumer.isPause();
+        return this.rocketmqPushConsumer.getDefaultMQPushConsumerImpl().isPause();
     }
 
     @Override

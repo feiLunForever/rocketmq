@@ -46,12 +46,12 @@ import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.route.BrokerData;
+import org.apache.rocketmq.common.protocol.route.QueueData;
+import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.common.topic.TopicValidator;
 import org.apache.rocketmq.remoting.exception.RemotingException;
-import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
-import org.apache.rocketmq.remoting.protocol.route.BrokerData;
-import org.apache.rocketmq.remoting.protocol.route.QueueData;
-import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -132,7 +132,7 @@ public class TransactionMQProducerWithTraceTest {
 
         Field fieldHooks = DefaultMQProducerImpl.class.getDeclaredField("endTransactionHookList");
         fieldHooks.setAccessible(true);
-        List<EndTransactionHook> hooks = new ArrayList<>();
+        List<EndTransactionHook> hooks = new ArrayList<EndTransactionHook>();
         hooks.add(endTransactionHook);
         fieldHooks.set(producer.getDefaultMQProducerImpl(), hooks);
 
@@ -148,10 +148,9 @@ public class TransactionMQProducerWithTraceTest {
     public void testSendMessageSync_WithTrace_Success() throws RemotingException, InterruptedException, MQBrokerException, MQClientException {
         traceProducer.getDefaultMQProducerImpl().getMqClientFactory().registerProducer(producerGroupTraceTemp, traceProducer.getDefaultMQProducerImpl());
         when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
-        final AtomicReference<EndTransactionContext> context = new AtomicReference<>();
+        final AtomicReference<EndTransactionContext> context = new AtomicReference<EndTransactionContext>();
         doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock mock) throws Throwable {
+            @Override public Object answer(InvocationOnMock mock) throws Throwable {
                 context.set((EndTransactionContext) mock.getArgument(0));
                 return null;
             }
@@ -175,18 +174,18 @@ public class TransactionMQProducerWithTraceTest {
     public static TopicRouteData createTopicRoute() {
         TopicRouteData topicRouteData = new TopicRouteData();
 
-        topicRouteData.setFilterServerTable(new HashMap<>());
-        List<BrokerData> brokerDataList = new ArrayList<>();
+        topicRouteData.setFilterServerTable(new HashMap<String, List<String>>());
+        List<BrokerData> brokerDataList = new ArrayList<BrokerData>();
         BrokerData brokerData = new BrokerData();
         brokerData.setBrokerName("BrokerA");
         brokerData.setCluster("DefaultCluster");
-        HashMap<Long, String> brokerAddrs = new HashMap<>();
+        HashMap<Long, String> brokerAddrs = new HashMap<Long, String>();
         brokerAddrs.put(0L, "127.0.0.1:10911");
         brokerData.setBrokerAddrs(brokerAddrs);
         brokerDataList.add(brokerData);
         topicRouteData.setBrokerDatas(brokerDataList);
 
-        List<QueueData> queueDataList = new ArrayList<>();
+        List<QueueData> queueDataList = new ArrayList<QueueData>();
         QueueData queueData = new QueueData();
         queueData.setBrokerName("BrokerA");
         queueData.setPerm(6);

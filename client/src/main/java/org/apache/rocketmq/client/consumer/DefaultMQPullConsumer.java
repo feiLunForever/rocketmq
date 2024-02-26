@@ -17,7 +17,6 @@
 package org.apache.rocketmq.client.consumer;
 
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.QueryResult;
@@ -30,14 +29,16 @@ import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.message.MessageDecoder;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.protocol.NamespaceUtil;
+import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.remoting.exception.RemotingException;
-import org.apache.rocketmq.remoting.protocol.NamespaceUtil;
-import org.apache.rocketmq.remoting.protocol.heartbeat.MessageModel;
 
 /**
- * @deprecated Default pulling consumer. This class will be removed in 2022, and a better implementation {@link
- * DefaultLitePullConsumer} is recommend to use in the scenario of actively pulling messages.
+ * @deprecated
+ * Default pulling consumer.
+ * This class will be removed in 2022, and a better implementation {@link DefaultLitePullConsumer} is recommend to use
+ * in the scenario of actively pulling messages.
  */
 @Deprecated
 public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsumer {
@@ -76,7 +77,7 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
     /**
      * Topic set you want to register
      */
-    private Set<String> registerTopics = new HashSet<>();
+    private Set<String> registerTopics = new HashSet<String>();
     /**
      * Queue allocation algorithm
      */
@@ -107,7 +108,6 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
     public DefaultMQPullConsumer(final String namespace, final String consumerGroup) {
         this(namespace, consumerGroup, null);
     }
-
     /**
      * Constructor specifying namespace, consumer group and RPC hook.
      *
@@ -126,9 +126,8 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
      */
     @Deprecated
     @Override
-    public void createTopic(String key, String newTopic, int queueNum,
-        Map<String, String> attributes) throws MQClientException {
-        createTopic(key, withNamespace(newTopic), queueNum, 0, null);
+    public void createTopic(String key, String newTopic, int queueNum) throws MQClientException {
+        createTopic(key, withNamespace(newTopic), queueNum, 0);
     }
 
     /**
@@ -136,8 +135,7 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
      */
     @Deprecated
     @Override
-    public void createTopic(String key, String newTopic, int queueNum, int topicSysFlag,
-        Map<String, String> attributes) throws MQClientException {
+    public void createTopic(String key, String newTopic, int queueNum, int topicSysFlag) throws MQClientException {
         this.defaultMQPullConsumerImpl.createTopic(key, withNamespace(newTopic), queueNum, topicSysFlag);
     }
 
@@ -353,14 +351,6 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
     }
 
     @Override
-    public void pull(MessageQueue mq, String subExpression, long offset, int maxNums, int maxSize,
-        PullCallback pullCallback,
-        long timeout)
-        throws MQClientException, RemotingException, InterruptedException {
-        this.defaultMQPullConsumerImpl.pull(mq, subExpression, offset, maxNums, maxSize, pullCallback, timeout);
-    }
-
-    @Override
     public void pull(MessageQueue mq, MessageSelector messageSelector, long offset, int maxNums,
         PullCallback pullCallback)
         throws MQClientException, RemotingException, InterruptedException {
@@ -461,9 +451,5 @@ public class DefaultMQPullConsumer extends ClientConfig implements MQPullConsume
 
     public void setMaxReconsumeTimes(final int maxReconsumeTimes) {
         this.maxReconsumeTimes = maxReconsumeTimes;
-    }
-
-    public void persist(MessageQueue mq) {
-        this.getOffsetStore().persist(queueWithNamespace(mq));
     }
 }

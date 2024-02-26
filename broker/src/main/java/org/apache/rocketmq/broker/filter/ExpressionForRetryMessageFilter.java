@@ -17,13 +17,14 @@
 
 package org.apache.rocketmq.broker.filter;
 
-import java.nio.ByteBuffer;
-import java.util.Map;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.filter.ExpressionType;
 import org.apache.rocketmq.common.message.MessageConst;
 import org.apache.rocketmq.common.message.MessageDecoder;
-import org.apache.rocketmq.remoting.protocol.heartbeat.SubscriptionData;
+import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
+
+import java.nio.ByteBuffer;
+import java.util.Map;
 
 /**
  * Support filter to retry topic.

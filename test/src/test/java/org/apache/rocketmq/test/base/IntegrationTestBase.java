@@ -17,34 +17,28 @@
 
 package org.apache.rocketmq.test.base;
 
-import com.google.common.truth.Truth;
 import java.io.File;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.Random;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.broker.BrokerController;
-import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.common.BrokerConfig;
-import org.apache.rocketmq.common.TopicAttributes;
 import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.common.attribute.CQType;
-import org.apache.rocketmq.common.attribute.TopicMessageType;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.namesrv.NamesrvController;
 import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.store.config.MessageStoreConfig;
-import org.apache.rocketmq.test.util.MQAdminTestUtils;
+import org.apache.rocketmq.test.util.MQAdmin;
+import org.apache.rocketmq.test.util.TestUtils;
+import org.junit.Assert;
 
 public class IntegrationTestBase {
-    public static Logger logger = LoggerFactory.getLogger(IntegrationTestBase.class);
+    public static InternalLogger logger = InternalLoggerFactory.getLogger(IntegrationTestBase.class);
 
     protected static final String SEP = File.separator;
     protected static final String BROKER_NAME_PREFIX = "TestBrokerName_";
@@ -52,13 +46,18 @@ public class IntegrationTestBase {
     protected static final List<File> TMPE_FILES = new ArrayList<>();
     protected static final List<BrokerController> BROKER_CONTROLLERS = new ArrayList<>();
     protected static final List<NamesrvController> NAMESRV_CONTROLLERS = new ArrayList<>();
-    protected static int topicCreateTime = (int) TimeUnit.SECONDS.toSeconds(30);
-    public static volatile int commitLogSize = 1024 * 1024 * 100;
+    protected static int topicCreateTime = 30 * 1000;
+    protected static final int COMMIT_LOG_SIZE = 1024 * 1024 * 100;
     protected static final int INDEX_NUM = 1000;
 
-    static {
+    private static final AtomicInteger port = new AtomicInteger(40000);
 
-        System.setProperty("rocketmq.client.logRoot", System.getProperty("java.io.tmpdir"));
+    public static synchronized int nextPort() {
+        return port.addAndGet(random.nextInt(10) + 10);
+    }
+    protected static Random random = new Random();
+
+    static {
 
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
@@ -85,7 +84,6 @@ public class IntegrationTestBase {
                     for (File file : TMPE_FILES) {
                         UtilAll.deleteFile(file);
                     }
-                    MQAdminTestUtils.shutdownAdmin();
                 } catch (Exception e) {
                     logger.error("Shutdown error", e);
                 }
@@ -95,7 +93,7 @@ public class IntegrationTestBase {
     }
 
     public static String createBaseDir() {
-        String baseDir = System.getProperty("java.io.tmpdir") + SEP + "unitteststore-" + UUID.randomUUID();
+        String baseDir = System.getProperty("user.home") + SEP + "unitteststore-" + UUID.randomUUID();
         final File file = new File(baseDir);
         if (file.exists()) {
             logger.info(String.format("[%s] has already existed, please back up and remove it for integration tests", baseDir));
@@ -112,10 +110,10 @@ public class IntegrationTestBase {
         namesrvConfig.setKvConfigPath(baseDir + SEP + "namesrv" + SEP + "kvConfig.json");
         namesrvConfig.setConfigStorePath(baseDir + SEP + "namesrv" + SEP + "namesrv.properties");
 
-        nameServerNettyServerConfig.setListenPort(0);
+        nameServerNettyServerConfig.setListenPort(nextPort());
         NamesrvController namesrvController = new NamesrvController(namesrvConfig, nameServerNettyServerConfig);
         try {
-            Truth.assertThat(namesrvController.initialize()).isTrue();
+            Assert.assertTrue(namesrvController.initialize());
             logger.info("Name Server Start:{}", nameServerNettyServerConfig.getListenPort());
             namesrvController.start();
         } catch (Exception e) {
@@ -131,32 +129,27 @@ public class IntegrationTestBase {
         String baseDir = createBaseDir();
         BrokerConfig brokerConfig = new BrokerConfig();
         MessageStoreConfig storeConfig = new MessageStoreConfig();
-        brokerConfig.setBrokerName(BROKER_NAME_PREFIX + BROKER_INDEX.incrementAndGet());
+        brokerConfig.setBrokerName(BROKER_NAME_PREFIX + BROKER_INDEX.getAndIncrement());
         brokerConfig.setBrokerIP1("127.0.0.1");
         brokerConfig.setNamesrvAddr(nsAddr);
         brokerConfig.setEnablePropertyFilter(true);
-        brokerConfig.setEnableCalcFilterBitMap(true);
-        storeConfig.setEnableConsumeQueueExt(true);
-        brokerConfig.setLoadBalancePollNameServerInterval(500);
         storeConfig.setStorePathRootDir(baseDir);
         storeConfig.setStorePathCommitLog(baseDir + SEP + "commitlog");
-        storeConfig.setMappedFileSizeCommitLog(commitLogSize);
+        storeConfig.setMappedFileSizeCommitLog(COMMIT_LOG_SIZE);
         storeConfig.setMaxIndexNum(INDEX_NUM);
         storeConfig.setMaxHashSlotNum(INDEX_NUM * 4);
-        storeConfig.setDeleteWhen("01;02;03;04;05;06;07;08;09;10;11;12;13;14;15;16;17;18;19;20;21;22;23;00");
-        storeConfig.setMaxTransferCountOnMessageInMemory(1024);
-        storeConfig.setMaxTransferCountOnMessageInDisk(1024);
         return createAndStartBroker(storeConfig, brokerConfig);
+
     }
 
     public static BrokerController createAndStartBroker(MessageStoreConfig storeConfig, BrokerConfig brokerConfig) {
         NettyServerConfig nettyServerConfig = new NettyServerConfig();
         NettyClientConfig nettyClientConfig = new NettyClientConfig();
-        nettyServerConfig.setListenPort(0);
-        storeConfig.setHaListenPort(0);
+        nettyServerConfig.setListenPort(nextPort());
+        storeConfig.setHaListenPort(nextPort());
         BrokerController brokerController = new BrokerController(brokerConfig, nettyServerConfig, nettyClientConfig, storeConfig);
         try {
-            Truth.assertThat(brokerController.initialize()).isTrue();
+            Assert.assertTrue(brokerController.initialize());
             logger.info("Broker Start name:{} addr:{}", brokerConfig.getBrokerName(), brokerController.getBrokerAddr());
             brokerController.start();
         } catch (Throwable t) {
@@ -167,29 +160,29 @@ public class IntegrationTestBase {
         return brokerController;
     }
 
-    public static boolean initTopic(String topic, String nsAddr, String clusterName, int queueNumbers, CQType cqType) {
-        return initTopic(topic, nsAddr, clusterName, queueNumbers, cqType, TopicMessageType.NORMAL);
-    }
-
-    public static boolean initTopic(String topic, String nsAddr, String clusterName, int queueNumbers, CQType cqType, TopicMessageType topicMessageType) {
+    public static boolean initTopic(String topic, String nsAddr, String clusterName, int queueNumbers) {
+        long startTime = System.currentTimeMillis();
         boolean createResult;
-        Map<String, String> attributes = new HashMap<>();
-        if (!Objects.equals(CQType.SimpleCQ, cqType)) {
-            attributes.put("+" + TopicAttributes.QUEUE_TYPE_ATTRIBUTE.getName(), cqType.toString());
+
+        while (true) {
+            createResult = MQAdmin.createTopic(nsAddr, clusterName, topic, queueNumbers);
+            if (createResult) {
+                break;
+            } else if (System.currentTimeMillis() - startTime > topicCreateTime) {
+                Assert.fail(String.format("topic[%s] is created failed after:%d ms", topic,
+                    System.currentTimeMillis() - startTime));
+                break;
+            } else {
+                TestUtils.waitForMoment(500);
+                continue;
+            }
         }
-        if (!Objects.equals(TopicMessageType.NORMAL, topicMessageType)) {
-            attributes.put("+" + TopicAttributes.TOPIC_MESSAGE_TYPE_ATTRIBUTE.getName(), topicMessageType.toString());
-        }
-        createResult = MQAdminTestUtils.createTopic(nsAddr, clusterName, topic, queueNumbers, attributes, topicCreateTime);
+
         return createResult;
     }
 
-    public static boolean initTopic(String topic, String nsAddr, String clusterName, CQType cqType) {
-        return initTopic(topic, nsAddr, clusterName, BaseConf.QUEUE_NUMBERS, cqType, TopicMessageType.NORMAL);
-    }
-
-    public static boolean initTopic(String topic, String nsAddr, String clusterName, TopicMessageType topicMessageType) {
-        return initTopic(topic, nsAddr, clusterName, BaseConf.QUEUE_NUMBERS, CQType.SimpleCQ, topicMessageType);
+    public static boolean initTopic(String topic, String nsAddr, String clusterName) {
+        return initTopic(topic, nsAddr, clusterName, 8);
     }
 
     public static void deleteFile(File file) {
@@ -199,12 +192,4 @@ public class IntegrationTestBase {
         UtilAll.deleteFile(file);
     }
 
-    public static void initMQAdmin(String nsAddr) {
-        try {
-            MQAdminTestUtils.startAdmin(nsAddr);
-        } catch (MQClientException e) {
-            logger.info("MQAdmin start failed");
-            System.exit(1);
-        }
-    }
 }

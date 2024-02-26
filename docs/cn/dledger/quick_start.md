@@ -1,5 +1,4 @@
 # Dledger快速搭建
-> 该模式为4.x的切换方式，建议采用 5.x [自动主从切换](../controller/quick_start.md)
 ---
 ### 前言
 该文档主要介绍如何快速构建和部署基于 DLedger 的可以自动容灾切换的 RocketMQ 集群。
@@ -11,36 +10,33 @@
 
 #### 1.1 构建 DLedger
 
-```shell
-$ git clone https://github.com/openmessaging/dledger.git
-$ cd dledger
-$ mvn clean install -DskipTests
-```
+`git clone https://github.com/openmessaging/openmessaging-storage-dledger.git`
+
+`cd openmessaging-storage-dledger`
+
+`mvn clean install -DskipTests`
 
 #### 1.2 构建 RocketMQ
 
-```shell
-$ git clone https://github.com/apache/rocketmq.git
-$ cd rocketmq
-$ git checkout -b store_with_dledger origin/store_with_dledger
-$ mvn -Prelease-all -DskipTests clean install -U
-```
+`git clone https://github.com/apache/rocketmq.git`
+
+`cd rocketmq`
+
+`git checkout -b store_with_dledger origin/store_with_dledger`
+
+`mvn -Prelease-all -DskipTests clean install -U`
 
 ### 2. 快速部署
 
 在构建成功后
 
-```shell
-#{rocketmq-version} replace with rocketmq actual version. example: 5.0.0-SNAPSHOT
-$ cd distribution/target/rocketmq-{rocketmq-version}/rocketmq-{rocketmq-version}
-$ sh bin/dledger/fast-try.sh start
-```
+`cd distribution/target/apache-rocketmq`
+
+`sh bin/dledger/fast-try.sh start`
 
 如果上面的步骤执行成功，可以通过 mqadmin 运维命令查看集群状态。
 
-```shell
-$ sh bin/mqadmin clusterList -n 127.0.0.1:9876
-```
+`sh bin/mqadmin clusterList -n 127.0.0.1:9876`
 
 顺利的话，会看到如下内容：
 
@@ -52,9 +48,7 @@ $ sh bin/mqadmin clusterList -n 127.0.0.1:9876
 
 关闭快速集群，可以执行：
 
-```shell
-$ sh bin/dledger/fast-try.sh stop
-```
+`sh bin/dledger/fast-try.sh stop`
 
 快速部署，默认配置在 conf/dledger 里面，默认的存储路径在 /tmp/rmqstore。
 

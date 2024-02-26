@@ -30,18 +30,15 @@ import org.apache.rocketmq.tools.command.SubCommandException;
 
 public class UpdateGlobalWhiteAddrSubCommand implements SubCommand {
 
-    @Override
-    public String commandName() {
+    @Override public String commandName() {
         return "updateGlobalWhiteAddr";
     }
 
-    @Override
-    public String commandDesc() {
+    @Override public String commandDesc() {
         return "Update global white address for acl Config File in broker";
     }
 
-    @Override
-    public Options buildCommandlineOptions(Options options) {
+    @Override public Options buildCommandlineOptions(Options options) {
 
         OptionGroup optionGroup = new OptionGroup();
 
@@ -65,8 +62,7 @@ public class UpdateGlobalWhiteAddrSubCommand implements SubCommand {
         return options;
     }
 
-    @Override
-    public void execute(CommandLine commandLine, Options options,
+    @Override public void execute(CommandLine commandLine, Options options,
         RPCHook rpcHook) throws SubCommandException {
 
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);

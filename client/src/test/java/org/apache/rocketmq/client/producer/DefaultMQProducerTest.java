@@ -42,14 +42,13 @@ import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 import org.apache.rocketmq.client.impl.producer.DefaultMQProducerImpl;
 import org.apache.rocketmq.client.impl.producer.TopicPublishInfo;
 import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.common.protocol.header.SendMessageRequestHeader;
+import org.apache.rocketmq.common.protocol.route.BrokerData;
+import org.apache.rocketmq.common.protocol.route.QueueData;
+import org.apache.rocketmq.common.protocol.route.TopicRouteData;
 import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.apache.rocketmq.remoting.netty.NettyRemotingClient;
-import org.apache.rocketmq.remoting.protocol.header.SendMessageRequestHeader;
-import org.apache.rocketmq.remoting.protocol.route.BrokerData;
-import org.apache.rocketmq.remoting.protocol.route.QueueData;
-import org.apache.rocketmq.remoting.protocol.route.TopicRouteData;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -129,7 +128,7 @@ public class DefaultMQProducerTest {
 
     @Test
     public void testSendMessage_NoNameSrv() throws RemotingException, InterruptedException, MQBrokerException {
-        when(mQClientAPIImpl.getNameServerAddressList()).thenReturn(new ArrayList<>());
+        when(mQClientAPIImpl.getNameServerAddressList()).thenReturn(new ArrayList<String>());
         try {
             producer.send(message);
             failBecauseExceptionWasNotThrown(MQClientException.class);
@@ -193,7 +192,7 @@ public class DefaultMQProducerTest {
     @Test
     public void testSendMessageAsync() throws RemotingException, MQClientException, InterruptedException {
         final AtomicInteger cc = new AtomicInteger(0);
-        final CountDownLatch countDownLatch = new CountDownLatch(12);
+        final CountDownLatch countDownLatch = new CountDownLatch(6);
 
         when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
         SendCallback sendCallback = new SendCallback() {
@@ -216,10 +215,6 @@ public class DefaultMQProducerTest {
             }
         };
 
-        // on enableBackpressureForAsyncMode
-        producer.setEnableBackpressureForAsyncMode(true);
-        producer.setBackPressureForAsyncSendNum(5000);
-        producer.setBackPressureForAsyncSendSize(50 * 1024 * 1024);
         Message message = new Message();
         message.setTopic("test");
         message.setBody("hello world".getBytes());
@@ -233,21 +228,8 @@ public class DefaultMQProducerTest {
 
         countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
         assertThat(cc.get()).isEqualTo(5);
-
-        // off enableBackpressureForAsyncMode
-        producer.setEnableBackpressureForAsyncMode(false);
-        producer.send(new Message(), sendCallback);
-        producer.send(message, new MessageQueue(), sendCallback);
-        producer.send(new Message(), new MessageQueue(), sendCallback, 1000);
-        producer.send(new Message(), messageQueueSelector, null, sendCallback);
-        producer.send(message, messageQueueSelector, null, sendCallback, 1000);
-        //this message is send success
-        producer.send(message, sendCallback, 1000);
-
-        countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
-        assertThat(cc.get()).isEqualTo(10);
     }
-
+    
     @Test
     public void testBatchSendMessageAsync()
             throws RemotingException, MQClientException, InterruptedException, MQBrokerException {
@@ -275,16 +257,13 @@ public class DefaultMQProducerTest {
             }
         };
 
-        List<Message> msgs = new ArrayList<>();
+        List<Message> msgs = new ArrayList<Message>();
         for (int i = 0; i < 5; i++) {
             Message message = new Message();
             message.setTopic("test");
             message.setBody(("hello world" + i).getBytes());
             msgs.add(message);
         }
-
-        // on enableBackpressureForAsyncMode
-        producer.setEnableBackpressureForAsyncMode(true);
         producer.send(msgs, sendCallback);
         producer.send(msgs, sendCallback, 1000);
         MessageQueue mq = new MessageQueue("test", "BrokerA", 1);
@@ -294,17 +273,6 @@ public class DefaultMQProducerTest {
 
         countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
         assertThat(cc.get()).isEqualTo(1);
-
-        // off enableBackpressureForAsyncMode
-        producer.setEnableBackpressureForAsyncMode(false);
-        producer.send(msgs, sendCallback);
-        producer.send(msgs, sendCallback, 1000);
-        producer.send(msgs, mq, sendCallback);
-        // this message is send failed
-        producer.send(msgs, new MessageQueue(), sendCallback, 1000);
-
-        countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
-        assertThat(cc.get()).isEqualTo(2);
     }
 
     @Test
@@ -400,8 +368,7 @@ public class DefaultMQProducerTest {
         when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
         final AtomicBoolean finish = new AtomicBoolean(false);
         new Thread(new Runnable() {
-            @Override
-            public void run() {
+            @Override public void run() {
                 ConcurrentHashMap<String, RequestResponseFuture> responseMap = RequestFutureHolder.getInstance().getRequestFutureTable();
                 assertThat(responseMap).isNotNull();
                 while (!finish.get()) {
@@ -409,19 +376,15 @@ public class DefaultMQProducerTest {
                         Thread.sleep(10);
                     } catch (InterruptedException e) {
                     }
-                    MessageExt responseMsg = new MessageExt();
-                    responseMsg.setTopic(message.getTopic());
-                    responseMsg.setBody(message.getBody());
                     for (Map.Entry<String, RequestResponseFuture> entry : responseMap.entrySet()) {
                         RequestResponseFuture future = entry.getValue();
-                        future.putResponseMessage(responseMsg);
+                        future.putResponseMessage(message);
                     }
                 }
             }
         }).start();
         Message result = producer.request(message, 3 * 1000L);
         finish.getAndSet(true);
-        assertThat(result).isExactlyInstanceOf(MessageExt.class);
         assertThat(result.getTopic()).isEqualTo("FooBar");
         assertThat(result.getBody()).isEqualTo(new byte[] {'a'});
     }
@@ -437,31 +400,24 @@ public class DefaultMQProducerTest {
         when(mQClientAPIImpl.getTopicRouteInfoFromNameServer(anyString(), anyLong())).thenReturn(createTopicRoute());
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         RequestCallback requestCallback = new RequestCallback() {
-            @Override
-            public void onSuccess(Message message) {
-                assertThat(message).isExactlyInstanceOf(MessageExt.class);
+            @Override public void onSuccess(Message message) {
                 assertThat(message.getTopic()).isEqualTo("FooBar");
                 assertThat(message.getBody()).isEqualTo(new byte[] {'a'});
                 assertThat(message.getFlag()).isEqualTo(1);
                 countDownLatch.countDown();
             }
 
-            @Override
-            public void onException(Throwable e) {
+            @Override public void onException(Throwable e) {
             }
         };
         producer.request(message, requestCallback, 3 * 1000L);
         ConcurrentHashMap<String, RequestResponseFuture> responseMap = RequestFutureHolder.getInstance().getRequestFutureTable();
         assertThat(responseMap).isNotNull();
-
-        MessageExt responseMsg = new MessageExt();
-        responseMsg.setTopic(message.getTopic());
-        responseMsg.setBody(message.getBody());
-        responseMsg.setFlag(1);
         for (Map.Entry<String, RequestResponseFuture> entry : responseMap.entrySet()) {
             RequestResponseFuture future = entry.getValue();
             future.setSendRequestOk(true);
-            future.getRequestCallback().onSuccess(responseMsg);
+            message.setFlag(1);
+            future.getRequestCallback().onSuccess(message);
         }
         countDownLatch.await(3000L, TimeUnit.MILLISECONDS);
     }
@@ -471,13 +427,11 @@ public class DefaultMQProducerTest {
         final AtomicInteger cc = new AtomicInteger(0);
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         RequestCallback requestCallback = new RequestCallback() {
-            @Override
-            public void onSuccess(Message message) {
+            @Override public void onSuccess(Message message) {
 
             }
 
-            @Override
-            public void onException(Throwable e) {
+            @Override public void onException(Throwable e) {
                 cc.incrementAndGet();
                 countDownLatch.countDown();
             }
@@ -507,18 +461,18 @@ public class DefaultMQProducerTest {
     public static TopicRouteData createTopicRoute() {
         TopicRouteData topicRouteData = new TopicRouteData();
 
-        topicRouteData.setFilterServerTable(new HashMap<>());
-        List<BrokerData> brokerDataList = new ArrayList<>();
+        topicRouteData.setFilterServerTable(new HashMap<String, List<String>>());
+        List<BrokerData> brokerDataList = new ArrayList<BrokerData>();
         BrokerData brokerData = new BrokerData();
         brokerData.setBrokerName("BrokerA");
         brokerData.setCluster("DefaultCluster");
-        HashMap<Long, String> brokerAddrs = new HashMap<>();
+        HashMap<Long, String> brokerAddrs = new HashMap<Long, String>();
         brokerAddrs.put(0L, "127.0.0.1:10911");
         brokerData.setBrokerAddrs(brokerAddrs);
         brokerDataList.add(brokerData);
         topicRouteData.setBrokerDatas(brokerDataList);
 
-        List<QueueData> queueDataList = new ArrayList<>();
+        List<QueueData> queueDataList = new ArrayList<QueueData>();
         QueueData queueData = new QueueData();
         queueData.setBrokerName("BrokerA");
         queueData.setPerm(6);

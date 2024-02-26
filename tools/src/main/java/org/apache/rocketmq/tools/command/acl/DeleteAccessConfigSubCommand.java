@@ -65,8 +65,7 @@ public class DeleteAccessConfigSubCommand implements SubCommand {
         return options;
     }
 
-    @Override
-    public void execute(CommandLine commandLine, Options options,
+    @Override public void execute(CommandLine commandLine, Options options,
         RPCHook rpcHook) throws SubCommandException {
 
         DefaultMQAdminExt defaultMQAdminExt = new DefaultMQAdminExt(rpcHook);
@@ -83,7 +82,7 @@ public class DeleteAccessConfigSubCommand implements SubCommand {
                 defaultMQAdminExt.deletePlainAccessConfig(addr, accessKey);
 
                 System.out.printf("delete plain access config account from %s success.%n", addr);
-                System.out.printf("account's accessKey is:%s", accessKey);
+                System.out.printf("account's accesskey is:%s", accessKey);
                 return;
 
             } else if (commandLine.hasOption('c')) {
@@ -98,7 +97,7 @@ public class DeleteAccessConfigSubCommand implements SubCommand {
                     System.out.printf("delete plain access config account from %s success.%n", addr);
                 }
 
-                System.out.printf("account's accessKey is:%s", accessKey);
+                System.out.printf("account's accesskey is:%s", accessKey);
                 return;
             }
 

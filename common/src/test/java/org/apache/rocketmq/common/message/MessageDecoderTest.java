@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.common.message;
 
-import org.apache.rocketmq.common.UtilAll;
 import org.apache.rocketmq.common.sysflag.MessageSysFlag;
 import org.junit.Test;
 
@@ -65,45 +64,23 @@ public class MessageDecoderTest {
         messageExt.putUserProperty("b", "hello");
         messageExt.putUserProperty("c", "3.14");
 
-        {
-            byte[] msgBytes = new byte[0];
-            try {
-                msgBytes = MessageDecoder.encode(messageExt, false);
-            } catch (Exception e) {
-                e.printStackTrace();
-                assertThat(Boolean.FALSE).isTrue();
-            }
-
-            ByteBuffer byteBuffer = ByteBuffer.allocate(msgBytes.length);
-            byteBuffer.put(msgBytes);
-
-            Map<String, String> properties = MessageDecoder.decodeProperties(byteBuffer);
-
-            assertThat(properties).isNotNull();
-            assertThat("123").isEqualTo(properties.get("a"));
-            assertThat("hello").isEqualTo(properties.get("b"));
-            assertThat("3.14").isEqualTo(properties.get("c"));
+        byte[] msgBytes = new byte[0];
+        try {
+            msgBytes = MessageDecoder.encode(messageExt, false);
+        } catch (Exception e) {
+            e.printStackTrace();
+            assertThat(Boolean.FALSE).isTrue();
         }
 
-        {
-            byte[] msgBytes = new byte[0];
-            try {
-                msgBytes = MessageDecoder.encode(messageExt, false);
-            } catch (Exception e) {
-                e.printStackTrace();
-                assertThat(Boolean.FALSE).isTrue();
-            }
+        ByteBuffer byteBuffer = ByteBuffer.allocate(msgBytes.length);
+        byteBuffer.put(msgBytes);
 
-            ByteBuffer byteBuffer = ByteBuffer.allocate(msgBytes.length);
-            byteBuffer.put(msgBytes);
+        Map<String, String> properties = MessageDecoder.decodeProperties(byteBuffer);
 
-            Map<String, String> properties = MessageDecoder.decodeProperties(byteBuffer);
-
-            assertThat(properties).isNotNull();
-            assertThat("123").isEqualTo(properties.get("a"));
-            assertThat("hello").isEqualTo(properties.get("b"));
-            assertThat("3.14").isEqualTo(properties.get("c"));
-        }
+        assertThat(properties).isNotNull();
+        assertThat("123").isEqualTo(properties.get("a"));
+        assertThat("hello").isEqualTo(properties.get("b"));
+        assertThat("3.14").isEqualTo(properties.get("c"));
     }
 
     @Test
@@ -187,8 +164,6 @@ public class MessageDecoderTest {
         messageExt.putUserProperty("b", "hello");
         messageExt.putUserProperty("c", "3.14");
 
-        messageExt.setBodyCRC(UtilAll.crc32(messageExt.getBody()));
-
         byte[] msgBytes = new byte[0];
         try {
             msgBytes = MessageDecoder.encode(messageExt, false);
@@ -200,7 +175,7 @@ public class MessageDecoderTest {
         ByteBuffer byteBuffer = ByteBuffer.allocate(msgBytes.length);
         byteBuffer.put(msgBytes);
 
-        byteBuffer.flip();
+        byteBuffer.clear();
         MessageExt decodedMsg = MessageDecoder.decode(byteBuffer);
 
         assertThat(decodedMsg).isNotNull();
@@ -248,8 +223,6 @@ public class MessageDecoderTest {
         messageExt.putUserProperty("b", "hello");
         messageExt.putUserProperty("c", "3.14");
 
-        messageExt.setBodyCRC(UtilAll.crc32(messageExt.getBody()));
-
         byte[] msgBytes = new byte[0];
         try {
             msgBytes = MessageDecoder.encode(messageExt, false);
@@ -261,15 +234,14 @@ public class MessageDecoderTest {
         ByteBuffer byteBuffer = ByteBuffer.allocate(msgBytes.length);
         byteBuffer.put(msgBytes);
 
-        byteBuffer.flip();
+        byteBuffer.clear();
         MessageExt decodedMsg = MessageDecoder.decode(byteBuffer);
 
         assertThat(decodedMsg).isNotNull();
         assertThat(1).isEqualTo(decodedMsg.getQueueId());
         assertThat(123456L).isEqualTo(decodedMsg.getCommitLogOffset());
         assertThat("hello!q!".getBytes()).isEqualTo(decodedMsg.getBody());
-        // assertThat(48).isEqualTo(decodedMsg.getSysFlag());
-        assertThat(MessageSysFlag.check(messageExt.getSysFlag(), MessageSysFlag.STOREHOSTADDRESS_V6_FLAG)).isTrue();
+        assertThat(48).isEqualTo(decodedMsg.getSysFlag());
 
         int msgIDLength = 16 + 4 + 8;
         ByteBuffer byteBufferMsgId = ByteBuffer.allocate(msgIDLength);
@@ -279,7 +251,6 @@ public class MessageDecoderTest {
         assertThat("abc").isEqualTo(decodedMsg.getTopic());
     }
 
-    @Test
     public void testNullValueProperty() throws Exception {
         MessageExt msg = new MessageExt();
         msg.setBody("x".getBytes());
@@ -405,7 +376,7 @@ public class MessageDecoderTest {
     }
 
     @Test
-    public void testMessageId() throws Exception {
+    public void testMessageId() throws Exception{
         // ipv4 messageId test
         MessageExt msgExt = new MessageExt();
         msgExt.setStoreHost(new InetSocketAddress("127.0.0.1", 9103));

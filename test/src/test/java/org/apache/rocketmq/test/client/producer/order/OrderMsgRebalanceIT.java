@@ -18,9 +18,8 @@
 package org.apache.rocketmq.test.client.producer.order;
 
 import java.util.List;
+import org.apache.log4j.Logger;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
@@ -36,7 +35,7 @@ import org.junit.Test;
 import static com.google.common.truth.Truth.assertThat;
 
 public class OrderMsgRebalanceIT extends BaseConf {
-    private static Logger logger = LoggerFactory.getLogger(OrderMsgRebalanceIT.class);
+    private static Logger logger = Logger.getLogger(OrderMsgRebalanceIT.class);
     private RMQNormalProducer producer = null;
     private String topic = null;
 
@@ -44,7 +43,7 @@ public class OrderMsgRebalanceIT extends BaseConf {
     public void setUp() {
         topic = initTopic();
         logger.info(String.format("use topic: %s !", topic));
-        producer = getProducer(NAMESRV_ADDR, topic);
+        producer = getProducer(nsAddr, topic);
     }
 
     @After
@@ -55,16 +54,16 @@ public class OrderMsgRebalanceIT extends BaseConf {
     @Test
     public void testTwoConsumersBalance() {
         int msgSize = 10;
-        RMQNormalConsumer consumer1 = getConsumer(NAMESRV_ADDR, topic, "*", new RMQOrderListener());
-        RMQNormalConsumer consumer2 = getConsumer(NAMESRV_ADDR, consumer1.getConsumerGroup(), topic,
+        RMQNormalConsumer consumer1 = getConsumer(nsAddr, topic, "*", new RMQOrderListener());
+        RMQNormalConsumer consumer2 = getConsumer(nsAddr, consumer1.getConsumerGroup(), topic,
             "*", new RMQOrderListener());
-        TestUtils.waitForSeconds(WAIT_TIME);
+        TestUtils.waitForSeconds(waitTime);
 
         List<MessageQueue> mqs = producer.getMessageQueue();
         MessageQueueMsg mqMsgs = new MessageQueueMsg(mqs, msgSize);
         producer.send(mqMsgs.getMsgsWithMQ());
 
-        boolean recvAll = MQWait.waitConsumeAll(CONSUME_TIME, producer.getAllMsgBody(),
+        boolean recvAll = MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(),
             consumer1.getListener(), consumer2.getListener());
         assertThat(recvAll).isEqualTo(true);
 
@@ -82,22 +81,22 @@ public class OrderMsgRebalanceIT extends BaseConf {
     }
 
     @Test
-    public void testFourConsumerBalance() {
+    public void testFourConsuemrBalance() {
         int msgSize = 20;
-        RMQNormalConsumer consumer1 = getConsumer(NAMESRV_ADDR, topic, "*", new RMQOrderListener());
-        RMQNormalConsumer consumer2 = getConsumer(NAMESRV_ADDR, consumer1.getConsumerGroup(), topic,
+        RMQNormalConsumer consumer1 = getConsumer(nsAddr, topic, "*", new RMQOrderListener());
+        RMQNormalConsumer consumer2 = getConsumer(nsAddr, consumer1.getConsumerGroup(), topic,
             "*", new RMQOrderListener());
-        RMQNormalConsumer consumer3 = getConsumer(NAMESRV_ADDR, consumer1.getConsumerGroup(), topic,
+        RMQNormalConsumer consumer3 = getConsumer(nsAddr, consumer1.getConsumerGroup(), topic,
             "*", new RMQOrderListener());
-        RMQNormalConsumer consumer4 = getConsumer(NAMESRV_ADDR, consumer1.getConsumerGroup(), topic,
+        RMQNormalConsumer consumer4 = getConsumer(nsAddr, consumer1.getConsumerGroup(), topic,
             "*", new RMQOrderListener());
-        TestUtils.waitForSeconds(WAIT_TIME);
+        TestUtils.waitForSeconds(waitTime);
 
         List<MessageQueue> mqs = producer.getMessageQueue();
         MessageQueueMsg mqMsgs = new MessageQueueMsg(mqs, msgSize);
         producer.send(mqMsgs.getMsgsWithMQ());
 
-        boolean recvAll = MQWait.waitConsumeAll(CONSUME_TIME, producer.getAllMsgBody(),
+        boolean recvAll = MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(),
             consumer1.getListener(), consumer2.getListener(), consumer3.getListener(),
             consumer4.getListener());
         assertThat(recvAll).isEqualTo(true);

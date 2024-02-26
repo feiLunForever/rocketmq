@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.test.listener.rmq.concurrent;
 
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
@@ -27,10 +26,8 @@ import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.test.listener.AbstractListener;
 
 public class RMQNormalListener extends AbstractListener implements MessageListenerConcurrently {
-
     private ConsumeConcurrentlyStatus consumeStatus = ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
-
-    private final AtomicInteger msgIndex = new AtomicInteger(0);
+    private AtomicInteger msgIndex = new AtomicInteger(0);
 
     public RMQNormalListener() {
         super();
@@ -49,30 +46,25 @@ public class RMQNormalListener extends AbstractListener implements MessageListen
         super(originMsgCollector, msgBodyCollector);
     }
 
-    public AtomicInteger getMsgIndex() {
-        return msgIndex;
-    }
-
-    @Override
     public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs,
         ConsumeConcurrentlyContext consumeConcurrentlyContext) {
         for (MessageExt msg : msgs) {
             msgIndex.getAndIncrement();
             if (isDebug) {
                 if (listenerName != null && !listenerName.isEmpty()) {
-                    LOGGER.info(listenerName + ":" + msgIndex.get() + ":"
+                    logger.info(listenerName + ":" + msgIndex.get() + ":"
                         + String.format("msgid:%s broker:%s queueId:%s offset:%s",
                         msg.getMsgId(), msg.getStoreHost(), msg.getQueueId(),
                         msg.getQueueOffset()));
                 } else {
-                    LOGGER.info("{}", msg);
+                    logger.info(msg);
                 }
             }
 
-            msgBodys.addData(new String(msg.getBody(), StandardCharsets.UTF_8));
+            msgBodys.addData(new String(msg.getBody()));
             originMsgs.addData(msg);
             if (originMsgIndex != null) {
-                originMsgIndex.put(new String(msg.getBody(), StandardCharsets.UTF_8), msg);
+                originMsgIndex.put(new String(msg.getBody()), msg);
             }
         }
         return consumeStatus;

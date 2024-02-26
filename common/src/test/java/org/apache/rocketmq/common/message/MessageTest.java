@@ -20,6 +20,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import static org.apache.rocketmq.common.message.MessageConst.PROPERTY_TRACE_SWITCH;
+import static org.junit.Assert.*;
 
 public class MessageTest {
     @Test(expected = RuntimeException.class)

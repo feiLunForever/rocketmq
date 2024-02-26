@@ -31,20 +31,20 @@ public class AllocateMessageQueueByMachineRoomTest extends TestCase {
     public void testAllocateMessageQueueByMachineRoom() {
         List<String> consumerIdList = createConsumerIdList(2);
         List<MessageQueue> messageQueueList = createMessageQueueList(10);
-        Set<String> consumeridcs = new HashSet<>();
+        Set<String> consumeridcs = new HashSet<String>();
         consumeridcs.add("room1");
         AllocateMessageQueueByMachineRoom allocateStrategy = new AllocateMessageQueueByMachineRoom();
         allocateStrategy.setConsumeridcs(consumeridcs);
 
         // mqAll is null or mqAll empty
         try {
-            allocateStrategy.allocate("", consumerIdList.get(0), new ArrayList<>(), consumerIdList);
+            allocateStrategy.allocate("", consumerIdList.get(0), new ArrayList<MessageQueue>(), consumerIdList);
         } catch (Exception e) {
             assert e instanceof IllegalArgumentException;
             Assert.assertEquals("mqAll is null or mqAll empty", e.getMessage());
         }
 
-        Map<String, int[]> consumerAllocateQueue = new HashMap<>(consumerIdList.size());
+        Map<String, int[]> consumerAllocateQueue = new HashMap<String, int[]>(consumerIdList.size());
         for (String consumerId : consumerIdList) {
             List<MessageQueue> queues = allocateStrategy.allocate("", consumerId, messageQueueList, consumerIdList);
             int[] queueIds = new int[queues.size()];
@@ -58,7 +58,7 @@ public class AllocateMessageQueueByMachineRoomTest extends TestCase {
     }
 
     private List<String> createConsumerIdList(int size) {
-        List<String> consumerIdList = new ArrayList<>(size);
+        List<String> consumerIdList = new ArrayList<String>(size);
         for (int i = 0; i < size; i++) {
             consumerIdList.add("CID_PREFIX" + i);
         }
@@ -66,7 +66,7 @@ public class AllocateMessageQueueByMachineRoomTest extends TestCase {
     }
 
     private List<MessageQueue> createMessageQueueList(int size) {
-        List<MessageQueue> messageQueueList = new ArrayList<>(size);
+        List<MessageQueue> messageQueueList = new ArrayList<MessageQueue>(size);
         for (int i = 0; i < size; i++) {
             MessageQueue mq;
             if (i < size / 2) {

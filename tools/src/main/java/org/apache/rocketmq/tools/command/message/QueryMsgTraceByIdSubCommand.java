@@ -16,11 +16,6 @@
  */
 package org.apache.rocketmq.tools.command.message;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -36,6 +31,12 @@ import org.apache.rocketmq.tools.admin.DefaultMQAdminExt;
 import org.apache.rocketmq.tools.command.SubCommand;
 import org.apache.rocketmq.tools.command.SubCommandException;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
 public class QueryMsgTraceByIdSubCommand implements SubCommand {
 
     @Override
@@ -47,25 +48,12 @@ public class QueryMsgTraceByIdSubCommand implements SubCommand {
         opt = new Option("t", "traceTopic", true, "The name value of message trace topic");
         opt.setRequired(false);
         options.addOption(opt);
-
-        opt = new Option("b", "beginTimestamp", true, "Begin timestamp(ms). default:0, eg:1676730526212");
-        opt.setRequired(false);
-        options.addOption(opt);
-
-        opt = new Option("e", "endTimestamp", true, "End timestamp(ms). default:Long.MAX_VALUE, eg:1676730526212");
-        opt.setRequired(false);
-        options.addOption(opt);
-
-        opt = new Option("c", "maxNum", true, "The maximum number of messages returned by the query, default:64");
-        opt.setRequired(false);
-        options.addOption(opt);
-
         return options;
     }
 
     @Override
     public String commandDesc() {
-        return "Query a message trace";
+        return "query a message trace";
     }
 
     @Override
@@ -88,24 +76,7 @@ public class QueryMsgTraceByIdSubCommand implements SubCommand {
             if (commandLine.hasOption('t')) {
                 traceTopic = commandLine.getOptionValue('t').trim();
             }
-            if (commandLine.hasOption('n')) {
-                defaultMQAdminExt.setNamesrvAddr(commandLine.getOptionValue('n').trim());
-            }
-
-            long beginTimestamp = 0;
-            long endTimestamp = Long.MAX_VALUE;
-            int maxNum = 64;
-            if (commandLine.hasOption("b")) {
-                beginTimestamp = Long.parseLong(commandLine.getOptionValue("b").trim());
-            }
-            if (commandLine.hasOption("e")) {
-                endTimestamp = Long.parseLong(commandLine.getOptionValue("e").trim());
-            }
-            if (commandLine.hasOption("c")) {
-                maxNum = Integer.parseInt(commandLine.getOptionValue("c").trim());
-            }
-
-            this.queryTraceByMsgId(defaultMQAdminExt, traceTopic, msgId, maxNum, beginTimestamp, endTimestamp);
+            this.queryTraceByMsgId(defaultMQAdminExt, traceTopic, msgId);
         } catch (Exception e) {
             throw new SubCommandException(this.getClass().getSimpleName() + "command failed", e);
         } finally {
@@ -113,11 +84,10 @@ public class QueryMsgTraceByIdSubCommand implements SubCommand {
         }
     }
 
-    private void queryTraceByMsgId(final DefaultMQAdminExt admin, String traceTopic, String msgId, int maxNum,
-        long begin, long end)
+    private void queryTraceByMsgId(final DefaultMQAdminExt admin, String traceTopic, String msgId)
         throws MQClientException, InterruptedException {
         admin.start();
-        QueryResult queryResult = admin.queryMessage(traceTopic, msgId, maxNum, begin, end);
+        QueryResult queryResult = admin.queryMessage(traceTopic, msgId, 64, 0, System.currentTimeMillis());
         List<MessageExt> messageList = queryResult.getMessageList();
         List<TraceView> traceViews = new ArrayList<>();
         for (MessageExt message : messageList) {

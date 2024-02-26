@@ -17,20 +17,14 @@
 
 package org.apache.rocketmq.client;
 
-import java.io.File;
-import java.util.Properties;
-import org.apache.commons.lang3.StringUtils;
+import static org.apache.rocketmq.common.topic.TopicValidator.isTopicOrGroupIllegal;
+
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
-import org.apache.rocketmq.common.TopicConfig;
 import org.apache.rocketmq.common.UtilAll;
-import org.apache.rocketmq.common.constant.PermName;
 import org.apache.rocketmq.common.message.Message;
-import org.apache.rocketmq.common.message.MessageConst;
+import org.apache.rocketmq.common.protocol.ResponseCode;
 import org.apache.rocketmq.common.topic.TopicValidator;
-import org.apache.rocketmq.remoting.protocol.ResponseCode;
-
-import static org.apache.rocketmq.common.topic.TopicValidator.isTopicOrGroupIllegal;
 
 /**
  * Common Validator
@@ -64,27 +58,21 @@ public class Validators {
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, "the message is null");
         }
         // topic
-        Validators.checkTopic(msg.getTopic());
+        Validators.checkTopic(msg.getTopic()); // 检查 Topic 是否合法
         Validators.isNotAllowedSendTopic(msg.getTopic());
 
         // body
-        if (null == msg.getBody()) {
+        if (null == msg.getBody()) { // 判断 body 字段是否是 nil
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, "the message body is null");
         }
 
-        if (0 == msg.getBody().length) {
+        if (0 == msg.getBody().length) { // 判断 body 是否长度为 0
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, "the message body length is zero");
         }
 
-        if (msg.getBody().length > defaultMQProducer.getMaxMessageSize()) {
+        if (msg.getBody().length > defaultMQProducer.getMaxMessageSize()) { // 判断 body 的长度是否超过最大的长度, MaxMessageSize 默认是 4M
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL,
                 "the message body size over max value, MAX: " + defaultMQProducer.getMaxMessageSize());
-        }
-
-        String lmqPath = msg.getUserProperty(MessageConst.PROPERTY_INNER_MULTI_DISPATCH);
-        if (StringUtils.contains(lmqPath, File.separator)) {
-            throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL,
-                "INNER_MULTI_DISPATCH " + lmqPath + " can not contains " + File.separator + " character");
         }
     }
 
@@ -119,19 +107,4 @@ public class Validators {
         }
     }
 
-    public static void checkTopicConfig(final TopicConfig topicConfig) throws MQClientException {
-        if (!PermName.isValid(topicConfig.getPerm())) {
-            throw new MQClientException(ResponseCode.NO_PERMISSION,
-                String.format("topicPermission value: %s is invalid.", topicConfig.getPerm()));
-        }
-    }
-
-    public static void checkBrokerConfig(final Properties brokerConfig) throws MQClientException {
-        // TODO: use MixAll.isPropertyValid() when jdk upgrade to 1.8
-        if (brokerConfig.containsKey("brokerPermission")
-            && !PermName.isValid(brokerConfig.getProperty("brokerPermission"))) {
-            throw new MQClientException(ResponseCode.NO_PERMISSION,
-                String.format("brokerPermission value: %s is invalid.", brokerConfig.getProperty("brokerPermission")));
-        }
-    }
 }

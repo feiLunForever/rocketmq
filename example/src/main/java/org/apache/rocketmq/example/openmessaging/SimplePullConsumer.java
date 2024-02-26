@@ -23,7 +23,6 @@ import io.openmessaging.OMSBuiltinKeys;
 import io.openmessaging.consumer.PullConsumer;
 import io.openmessaging.producer.Producer;
 import io.openmessaging.producer.SendResult;
-import java.nio.charset.StandardCharsets;
 
 public class SimplePullConsumer {
 
@@ -49,7 +48,7 @@ public class SimplePullConsumer {
         final String queueName = "TopicTest";
 
         producer.startup();
-        Message msg = producer.createBytesMessage(queueName, "Hello Open Messaging".getBytes(StandardCharsets.UTF_8));
+        Message msg = producer.createBytesMessage(queueName, "Hello Open Messaging".getBytes());
         SendResult sendResult = producer.send(msg);
         System.out.printf("Send Message OK. MsgId: %s%n", sendResult.messageId());
         producer.shutdown();

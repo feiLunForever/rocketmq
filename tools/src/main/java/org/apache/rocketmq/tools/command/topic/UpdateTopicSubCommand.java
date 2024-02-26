@@ -16,15 +16,12 @@
  */
 package org.apache.rocketmq.tools.command.topic;
 
-import java.util.Map;
 import java.util.Set;
-
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.rocketmq.common.TopicConfig;
-import org.apache.rocketmq.common.attribute.AttributeParser;
 import org.apache.rocketmq.common.sysflag.TopicSysFlag;
 import org.apache.rocketmq.remoting.RPCHook;
 import org.apache.rocketmq.srvutil.ServerUtil;
@@ -57,10 +54,6 @@ public class UpdateTopicSubCommand implements SubCommand {
 
         optionGroup.setRequired(true);
         options.addOptionGroup(optionGroup);
-
-        opt = new Option("a", "attributes", true, "attribute(+a=b,+c=d,-e)");
-        opt.setRequired(false);
-        options.addOption(opt);
 
         opt = new Option("t", "topic", true, "topic name");
         opt.setRequired(true);
@@ -104,12 +97,6 @@ public class UpdateTopicSubCommand implements SubCommand {
             topicConfig.setReadQueueNums(8);
             topicConfig.setWriteQueueNums(8);
             topicConfig.setTopicName(commandLine.getOptionValue('t').trim());
-
-            if (commandLine.hasOption('a')) {
-                String attributesModification = commandLine.getOptionValue('a').trim();
-                Map<String, String> attributes = AttributeParser.parseToMap(attributesModification);
-                topicConfig.setAttributes(attributes);
-            }
 
             // readQueueNums
             if (commandLine.hasOption('r')) {
@@ -155,11 +142,11 @@ public class UpdateTopicSubCommand implements SubCommand {
                     String brokerName = CommandUtil.fetchBrokerNameByAddr(defaultMQAdminExt, addr);
                     String orderConf = brokerName + ":" + topicConfig.getWriteQueueNums();
                     defaultMQAdminExt.createOrUpdateOrderConf(topicConfig.getTopicName(), orderConf, false);
-                    System.out.printf("%s%n", String.format("set broker orderConf. isOrder=%s, orderConf=[%s]",
+                    System.out.printf("%s", String.format("set broker orderConf. isOrder=%s, orderConf=[%s]",
                         isOrder, orderConf.toString()));
                 }
                 System.out.printf("create topic to %s success.%n", addr);
-                System.out.printf("%s%n", topicConfig);
+                System.out.printf("%s", topicConfig);
                 return;
 
             } else if (commandLine.hasOption('c')) {
@@ -186,10 +173,10 @@ public class UpdateTopicSubCommand implements SubCommand {
                     }
                     defaultMQAdminExt.createOrUpdateOrderConf(topicConfig.getTopicName(),
                         orderConf.toString(), true);
-                    System.out.printf("set cluster orderConf. isOrder=%s, orderConf=[%s]%n", isOrder, orderConf);
+                    System.out.printf("set cluster orderConf. isOrder=%s, orderConf=[%s]", isOrder, orderConf);
                 }
 
-                System.out.printf("%s%n", topicConfig);
+                System.out.printf("%s", topicConfig);
                 return;
             }
 
@@ -200,5 +187,4 @@ public class UpdateTopicSubCommand implements SubCommand {
             defaultMQAdminExt.shutdown();
         }
     }
-
 }

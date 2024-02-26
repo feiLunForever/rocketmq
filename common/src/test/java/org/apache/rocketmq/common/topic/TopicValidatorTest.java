@@ -16,6 +16,9 @@
  */
 package org.apache.rocketmq.common.topic;
 
+import org.apache.rocketmq.common.protocol.ResponseCode;
+import org.apache.rocketmq.common.topic.TopicValidator;
+import org.apache.rocketmq.remoting.protocol.RemotingCommand;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -24,24 +27,34 @@ public class TopicValidatorTest {
 
     @Test
     public void testTopicValidator_NotPass() {
-        TopicValidator.ValidateTopicResult res = TopicValidator.validateTopic("");
-        assertThat(res.isValid()).isFalse();
-        assertThat(res.getRemark()).contains("The specified topic is blank");
+        RemotingCommand response = RemotingCommand.createResponseCommand(-1, "");
 
-        res = TopicValidator.validateTopic("../TopicTest");
-        assertThat(res.isValid()).isFalse();
-        assertThat(res.getRemark()).contains("The specified topic contains illegal characters");
+        Boolean res = TopicValidator.validateTopic("", response);
+        assertThat(res).isFalse();
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+        assertThat(response.getRemark()).contains("The specified topic is blank");
 
-        res = TopicValidator.validateTopic(generateString(128));
-        assertThat(res.isValid()).isFalse();
-        assertThat(res.getRemark()).contains("The specified topic is longer than topic max length.");
+        clearResponse(response);
+        res = TopicValidator.validateTopic("../TopicTest", response);
+        assertThat(res).isFalse();
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+        assertThat(response.getRemark()).contains("The specified topic contains illegal characters");
+
+        clearResponse(response);
+        res = TopicValidator.validateTopic(generateString(128), response);
+        assertThat(res).isFalse();
+        assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+        assertThat(response.getRemark()).contains("The specified topic is longer than topic max length.");
     }
 
     @Test
     public void testTopicValidator_Pass() {
-        TopicValidator.ValidateTopicResult res = TopicValidator.validateTopic("TestTopic");
-        assertThat(res.isValid()).isTrue();
-        assertThat(res.getRemark()).isEmpty();
+        RemotingCommand response = RemotingCommand.createResponseCommand(-1, "");
+
+        Boolean res = TopicValidator.validateTopic("TestTopic", response);
+        assertThat(res).isTrue();
+        assertThat(response.getCode()).isEqualTo(-1);
+        assertThat(response.getRemark()).isEmpty();
     }
 
     @Test
@@ -70,14 +83,17 @@ public class TopicValidatorTest {
 
     @Test
     public void testIsSystemTopicWithResponse() {
+        RemotingCommand response = RemotingCommand.createResponseCommand(-1, "");
         boolean res;
         for (String topic : TopicValidator.getSystemTopicSet()) {
-            res = TopicValidator.isSystemTopic(topic);
+            res = TopicValidator.isSystemTopic(topic, response);
             assertThat(res).isTrue();
+            assertThat(response.getCode()).isEqualTo(ResponseCode.SYSTEM_ERROR);
+            assertThat(response.getRemark()).isEqualTo("The topic[" + topic + "] is conflict with system topic.");
         }
 
         String topic = "test_not_system_topic";
-        res = TopicValidator.isSystemTopic(topic);
+        res = TopicValidator.isSystemTopic(topic, response);
         assertThat(res).isFalse();
     }
 
@@ -96,15 +112,24 @@ public class TopicValidatorTest {
 
     @Test
     public void testIsNotAllowedSendTopicWithResponse() {
+        RemotingCommand response = RemotingCommand.createResponseCommand(-1, "");
+
         boolean res;
         for (String topic : TopicValidator.getNotAllowedSendTopicSet()) {
-            res = TopicValidator.isNotAllowedSendTopic(topic);
+            res = TopicValidator.isNotAllowedSendTopic(topic, response);
             assertThat(res).isTrue();
+            assertThat(response.getCode()).isEqualTo(ResponseCode.NO_PERMISSION);
+            assertThat(response.getRemark()).isEqualTo("Sending message to topic[" + topic + "] is forbidden.");
         }
 
         String topic = "test_allowed_send_topic";
-        res = TopicValidator.isNotAllowedSendTopic(topic);
+        res = TopicValidator.isNotAllowedSendTopic(topic, response);
         assertThat(res).isFalse();
+    }
+
+    private static void clearResponse(RemotingCommand response) {
+        response.setCode(-1);
+        response.setRemark("");
     }
 
     private static String generateString(int length) {

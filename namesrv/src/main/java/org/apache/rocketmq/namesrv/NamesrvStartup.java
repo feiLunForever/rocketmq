@@ -16,49 +16,49 @@
  */
 package org.apache.rocketmq.namesrv;
 
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.joran.JoranConfigurator;
+import ch.qos.logback.core.joran.spi.JoranException;
 import java.io.BufferedInputStream;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.Properties;
 import java.util.concurrent.Callable;
 import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.apache.rocketmq.common.ControllerConfig;
+import org.apache.commons.cli.PosixParser;
 import org.apache.rocketmq.common.MQVersion;
 import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.common.constant.LoggerName;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.common.namesrv.NamesrvConfig;
-import org.apache.rocketmq.controller.ControllerManager;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.remoting.netty.NettyClientConfig;
 import org.apache.rocketmq.remoting.netty.NettyServerConfig;
 import org.apache.rocketmq.remoting.protocol.RemotingCommand;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.srvutil.ServerUtil;
 import org.apache.rocketmq.srvutil.ShutdownHookThread;
+import org.slf4j.LoggerFactory;
 
 public class NamesrvStartup {
 
-    private final static Logger log = LoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
-    private final static Logger logConsole = LoggerFactory.getLogger(LoggerName.NAMESRV_CONSOLE_LOGGER_NAME);
+    private static InternalLogger log;
     private static Properties properties = null;
-    private static NamesrvConfig namesrvConfig = null;
-    private static NettyServerConfig nettyServerConfig = null;
-    private static NettyClientConfig nettyClientConfig = null;
-    private static ControllerConfig controllerConfig = null;
+    private static CommandLine commandLine = null;
 
     public static void main(String[] args) {
         main0(args);
-        controllerManagerMain();
     }
 
     public static NamesrvController main0(String[] args) {
+
         try {
-            parseCommandlineAndConfigFile(args);
-            NamesrvController controller = createAndStartNamesrvController();
+            NamesrvController controller = createNamesrvController(args);
+            start(controller);
+            String tip = "The Name Server boot success. serializeType=" + RemotingCommand.getSerializeTypeConfigInThisServer();
+            log.info(tip);
+            System.out.printf("%s%n", tip);
             return controller;
         } catch (Throwable e) {
             e.printStackTrace();
@@ -68,45 +68,29 @@ public class NamesrvStartup {
         return null;
     }
 
-    public static ControllerManager controllerManagerMain() {
-        try {
-            if (namesrvConfig.isEnableControllerInNamesrv()) {
-                return createAndStartControllerManager();
-            }
-        } catch (Throwable e) {
-            e.printStackTrace();
-            System.exit(-1);
-        }
-        return null;
-    }
-
-    public static void parseCommandlineAndConfigFile(String[] args) throws Exception {
+    public static NamesrvController createNamesrvController(String[] args) throws IOException, JoranException {
         System.setProperty(RemotingCommand.REMOTING_VERSION_KEY, Integer.toString(MQVersion.CURRENT_VERSION));
+        //PackageConflictDetect.detectFastjson();
 
         Options options = ServerUtil.buildCommandlineOptions(new Options());
-        CommandLine commandLine = ServerUtil.parseCmdLine("mqnamesrv", args, buildCommandlineOptions(options), new DefaultParser());
+        commandLine = ServerUtil.parseCmdLine("mqnamesrv", args, buildCommandlineOptions(options), new PosixParser());
         if (null == commandLine) {
             System.exit(-1);
-            return;
+            return null;
         }
 
-        namesrvConfig = new NamesrvConfig();
-        nettyServerConfig = new NettyServerConfig();
-        nettyClientConfig = new NettyClientConfig();
+        final NamesrvConfig namesrvConfig = new NamesrvConfig();
+        final NettyServerConfig nettyServerConfig = new NettyServerConfig();
         nettyServerConfig.setListenPort(9876);
         if (commandLine.hasOption('c')) {
             String file = commandLine.getOptionValue('c');
             if (file != null) {
-                InputStream in = new BufferedInputStream(Files.newInputStream(Paths.get(file)));
+                InputStream in = new BufferedInputStream(new FileInputStream(file));
                 properties = new Properties();
                 properties.load(in);
                 MixAll.properties2Object(properties, namesrvConfig);
                 MixAll.properties2Object(properties, nettyServerConfig);
-                MixAll.properties2Object(properties, nettyClientConfig);
-                if (namesrvConfig.isEnableControllerInNamesrv()) {
-                    controllerConfig = new ControllerConfig();
-                    MixAll.properties2Object(properties, controllerConfig);
-                }
+
                 namesrvConfig.setConfigStorePath(file);
 
                 System.out.printf("load config properties file OK, %s%n", file);
@@ -114,42 +98,36 @@ public class NamesrvStartup {
             }
         }
 
-        MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), namesrvConfig);
         if (commandLine.hasOption('p')) {
-            MixAll.printObjectProperties(logConsole, namesrvConfig);
-            MixAll.printObjectProperties(logConsole, nettyServerConfig);
-            MixAll.printObjectProperties(logConsole, nettyClientConfig);
-            if (namesrvConfig.isEnableControllerInNamesrv()) {
-                MixAll.printObjectProperties(logConsole, controllerConfig);
-            }
+            InternalLogger console = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_CONSOLE_NAME);
+            MixAll.printObjectProperties(console, namesrvConfig);
+            MixAll.printObjectProperties(console, nettyServerConfig);
             System.exit(0);
         }
+
+        MixAll.properties2Object(ServerUtil.commandLine2Properties(commandLine), namesrvConfig);
 
         if (null == namesrvConfig.getRocketmqHome()) {
             System.out.printf("Please set the %s variable in your environment to match the location of the RocketMQ installation%n", MixAll.ROCKETMQ_HOME_ENV);
             System.exit(-2);
         }
+
+        LoggerContext lc = (LoggerContext) LoggerFactory.getILoggerFactory();
+        JoranConfigurator configurator = new JoranConfigurator();
+        configurator.setContext(lc);
+        lc.reset();
+        configurator.doConfigure(namesrvConfig.getRocketmqHome() + "/conf/logback_namesrv.xml");
+
+        log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
+
         MixAll.printObjectProperties(log, namesrvConfig);
         MixAll.printObjectProperties(log, nettyServerConfig);
 
-    }
+        final NamesrvController controller = new NamesrvController(namesrvConfig, nettyServerConfig);
 
-    public static NamesrvController createAndStartNamesrvController() throws Exception {
-
-        NamesrvController controller = createNamesrvController();
-        start(controller);
-        NettyServerConfig serverConfig = controller.getNettyServerConfig();
-        String tip = String.format("The Name Server boot success. serializeType=%s, address %s:%d", RemotingCommand.getSerializeTypeConfigInThisServer(), serverConfig.getBindAddress(), serverConfig.getListenPort());
-        log.info(tip);
-        System.out.printf("%s%n", tip);
-        return controller;
-    }
-
-    public static NamesrvController createNamesrvController() {
-
-        final NamesrvController controller = new NamesrvController(namesrvConfig, nettyServerConfig, nettyClientConfig);
         // remember all configs to prevent discard
         controller.getConfiguration().registerConfig(properties);
+
         return controller;
     }
 
@@ -175,51 +153,8 @@ public class NamesrvStartup {
         return controller;
     }
 
-    public static ControllerManager createAndStartControllerManager() throws Exception {
-        ControllerManager controllerManager = createControllerManager();
-        start(controllerManager);
-        String tip = "The ControllerManager boot success. serializeType=" + RemotingCommand.getSerializeTypeConfigInThisServer();
-        log.info(tip);
-        System.out.printf("%s%n", tip);
-        return controllerManager;
-    }
-
-    public static ControllerManager createControllerManager() throws Exception {
-        NettyServerConfig controllerNettyServerConfig = (NettyServerConfig) nettyServerConfig.clone();
-        ControllerManager controllerManager = new ControllerManager(controllerConfig, controllerNettyServerConfig, nettyClientConfig);
-        // remember all configs to prevent discard
-        controllerManager.getConfiguration().registerConfig(properties);
-        return controllerManager;
-    }
-
-    public static ControllerManager start(final ControllerManager controllerManager) throws Exception {
-
-        if (null == controllerManager) {
-            throw new IllegalArgumentException("ControllerManager is null");
-        }
-
-        boolean initResult = controllerManager.initialize();
-        if (!initResult) {
-            controllerManager.shutdown();
-            System.exit(-3);
-        }
-
-        Runtime.getRuntime().addShutdownHook(new ShutdownHookThread(log, (Callable<Void>) () -> {
-            controllerManager.shutdown();
-            return null;
-        }));
-
-        controllerManager.start();
-
-        return controllerManager;
-    }
-
     public static void shutdown(final NamesrvController controller) {
         controller.shutdown();
-    }
-
-    public static void shutdown(final ControllerManager controllerManager) {
-        controllerManager.shutdown();
     }
 
     public static Options buildCommandlineOptions(final Options options) {
@@ -230,6 +165,7 @@ public class NamesrvStartup {
         opt = new Option("p", "printConfigItem", false, "Print all config items");
         opt.setRequired(false);
         options.addOption(opt);
+
         return options;
     }
 

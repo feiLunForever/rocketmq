@@ -18,9 +18,8 @@
 package org.apache.rocketmq.test.client.producer.order;
 
 import java.util.List;
+import org.apache.log4j.Logger;
 import org.apache.rocketmq.common.message.MessageQueue;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
@@ -35,7 +34,7 @@ import org.junit.Test;
 import static com.google.common.truth.Truth.assertThat;
 
 public class OrderMsgWithTagIT extends BaseConf {
-    private static Logger logger = LoggerFactory.getLogger(OrderMsgIT.class);
+    private static Logger logger = Logger.getLogger(OrderMsgIT.class);
     private RMQNormalProducer producer = null;
     private String topic = null;
 
@@ -43,7 +42,7 @@ public class OrderMsgWithTagIT extends BaseConf {
     public void setUp() {
         topic = initTopic();
         logger.info(String.format("use topic: %s;", topic));
-        producer = getProducer(NAMESRV_ADDR, topic);
+        producer = getProducer(nsAddr, topic);
     }
 
     @After
@@ -55,13 +54,13 @@ public class OrderMsgWithTagIT extends BaseConf {
     public void testOrderMsgWithTagSubAll() {
         int msgSize = 10;
         String tag = "jueyin_tag";
-        RMQNormalConsumer consumer = getConsumer(NAMESRV_ADDR, topic, "*", new RMQOrderListener());
+        RMQNormalConsumer consumer = getConsumer(nsAddr, topic, "*", new RMQOrderListener());
 
         List<MessageQueue> mqs = producer.getMessageQueue();
         MessageQueueMsg mqMsgs = new MessageQueueMsg(mqs, msgSize, tag);
         producer.send(mqMsgs.getMsgsWithMQ());
 
-        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
 
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
@@ -75,13 +74,13 @@ public class OrderMsgWithTagIT extends BaseConf {
     public void testOrderMsgWithTagSubTag() {
         int msgSize = 5;
         String tag = "jueyin_tag";
-        RMQNormalConsumer consumer = getConsumer(NAMESRV_ADDR, topic, tag, new RMQOrderListener());
+        RMQNormalConsumer consumer = getConsumer(nsAddr, topic, tag, new RMQOrderListener());
 
         List<MessageQueue> mqs = producer.getMessageQueue();
         MessageQueueMsg mqMsgs = new MessageQueueMsg(mqs, msgSize, tag);
         producer.send(mqMsgs.getMsgsWithMQ());
 
-        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
 
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
@@ -96,7 +95,7 @@ public class OrderMsgWithTagIT extends BaseConf {
         int msgSize = 5;
         String tag1 = "jueyin_tag_1";
         String tag2 = "jueyin_tag_2";
-        RMQNormalConsumer consumer = getConsumer(NAMESRV_ADDR, topic, tag1, new RMQOrderListener());
+        RMQNormalConsumer consumer = getConsumer(nsAddr, topic, tag1, new RMQOrderListener());
 
         List<MessageQueue> mqs = producer.getMessageQueue();
 
@@ -107,7 +106,7 @@ public class OrderMsgWithTagIT extends BaseConf {
         mqMsgs = new MessageQueueMsg(mqs, msgSize, tag1);
         producer.send(mqMsgs.getMsgsWithMQ());
 
-        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
 
         assertThat(VerifyUtils.getFilterdMessage(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()))
@@ -122,9 +121,9 @@ public class OrderMsgWithTagIT extends BaseConf {
         int msgSize = 10;
         String tag1 = "jueyin_tag_1";
         String tag2 = "jueyin_tag_2";
-        RMQNormalConsumer consumer1 = getConsumer(NAMESRV_ADDR, topic, tag1,
+        RMQNormalConsumer consumer1 = getConsumer(nsAddr, topic, tag1,
             new RMQOrderListener("consumer1"));
-        RMQNormalConsumer consumer2 = getConsumer(NAMESRV_ADDR, topic, tag2,
+        RMQNormalConsumer consumer2 = getConsumer(nsAddr, topic, tag2,
             new RMQOrderListener("consumer2"));
         List<MessageQueue> mqs = producer.getMessageQueue();
 
@@ -134,7 +133,7 @@ public class OrderMsgWithTagIT extends BaseConf {
         mqMsgs = new MessageQueueMsg(mqs, msgSize, tag2);
         producer.send(mqMsgs.getMsgsWithMQ());
 
-        boolean recvAll = MQWait.waitConsumeAll(CONSUME_TIME, producer.getAllMsgBody(),
+        boolean recvAll = MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(),
             consumer1.getListener(), consumer2.getListener());
         assertThat(recvAll).isEqualTo(true);
 
@@ -149,7 +148,7 @@ public class OrderMsgWithTagIT extends BaseConf {
         int msgSize = 10;
         String tag1 = "jueyin_tag_1";
         String tag2 = "jueyin_tag_2";
-        RMQNormalConsumer consumer = getConsumer(NAMESRV_ADDR, topic,
+        RMQNormalConsumer consumer = getConsumer(nsAddr, topic,
             String.format("%s||%s", tag1, tag2), new RMQOrderListener());
 
         List<MessageQueue> mqs = producer.getMessageQueue();
@@ -160,7 +159,7 @@ public class OrderMsgWithTagIT extends BaseConf {
         mqMsgs = new MessageQueueMsg(mqs, msgSize, tag2);
         producer.send(mqMsgs.getMsgsWithMQ());
 
-        boolean recvAll = MQWait.waitConsumeAll(CONSUME_TIME, producer.getAllMsgBody(),
+        boolean recvAll = MQWait.waitConsumeAll(consumeTime, producer.getAllMsgBody(),
             consumer.getListener());
         assertThat(recvAll).isEqualTo(true);
 

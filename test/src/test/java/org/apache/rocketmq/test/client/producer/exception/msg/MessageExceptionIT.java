@@ -37,7 +37,7 @@ public class MessageExceptionIT extends BaseConf {
 
     @Before
     public void setUp() {
-        producer = ProducerFactory.getRMQProducer(NAMESRV_ADDR);
+        producer = ProducerFactory.getRMQProducer(nsAddr);
         topic = initTopic();
     }
 

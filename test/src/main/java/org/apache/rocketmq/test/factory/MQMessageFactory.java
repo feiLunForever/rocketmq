@@ -17,7 +17,6 @@
 
 package org.apache.rocketmq.test.factory;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -34,7 +33,7 @@ public class MQMessageFactory {
     public static List<Object> getRMQMessage(String tag, String topic, int msgSize) {
         List<Object> msgs = new ArrayList<Object>();
         for (int i = 0; i < msgSize; i++) {
-            msgs.add(new Message(topic, tag, RandomUtil.getStringByUUID().getBytes(StandardCharsets.UTF_8)));
+            msgs.add(new Message(topic, tag, RandomUtil.getStringByUUID().getBytes()));
         }
 
         return msgs;
@@ -44,7 +43,7 @@ public class MQMessageFactory {
         List<Object> msgs = new ArrayList<Object>();
         for (int i = 0; i < msgSize; i++) {
             for (String tag : tags) {
-                msgs.add(new Message(topic, tag, RandomUtil.getStringByUUID().getBytes(StandardCharsets.UTF_8)));
+                msgs.add(new Message(topic, tag, RandomUtil.getStringByUUID().getBytes()));
             }
         }
         return msgs;
@@ -53,7 +52,7 @@ public class MQMessageFactory {
     public static List<Object> getMessageBody(List<Object> msgs) {
         List<Object> msgBodys = new ArrayList<Object>();
         for (Object msg : msgs) {
-            msgBodys.add(new String(((Message) msg).getBody(), StandardCharsets.UTF_8));
+            msgBodys.add(new String(((Message) msg).getBody()));
         }
 
         return msgBodys;
@@ -70,7 +69,7 @@ public class MQMessageFactory {
     public static List<Object> getDelayMsg(String topic, int delayLevel, int msgSize) {
         List<Object> msgs = new ArrayList<Object>();
         for (int i = 0; i < msgSize; i++) {
-            Message msg = new Message(topic, RandomUtil.getStringByUUID().getBytes(StandardCharsets.UTF_8));
+            Message msg = new Message(topic, RandomUtil.getStringByUUID().getBytes());
             msg.setDelayTimeLevel(delayLevel);
             msgs.add(msg);
         }
@@ -80,7 +79,7 @@ public class MQMessageFactory {
     public static List<Object> getKeyMsg(String topic, String key, int msgSize) {
         List<Object> msgs = new ArrayList<Object>();
         for (int i = 0; i < msgSize; i++) {
-            Message msg = new Message(topic, null, key, RandomUtil.getStringByUUID().getBytes(StandardCharsets.UTF_8));
+            Message msg = new Message(topic, null, key, RandomUtil.getStringByUUID().getBytes());
             msgs.add(msg);
         }
         return msgs;
@@ -112,7 +111,7 @@ public class MQMessageFactory {
     public static List<Object> getMsg(String topic, int msgSize, String tag) {
         List<Object> msgs = new ArrayList<Object>();
         while (msgSize > 0) {
-            Message msg = new Message(topic, (index++).toString().getBytes(StandardCharsets.UTF_8));
+            Message msg = new Message(topic, (index++).toString().getBytes());
             if (tag != null) {
                 msg.setTags(tag);
             }

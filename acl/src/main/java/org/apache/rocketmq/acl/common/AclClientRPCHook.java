@@ -55,7 +55,7 @@ public class AclClientRPCHook implements RPCHook {
         request.makeCustomHeaderToNet();
         Map<String, String> extFields = request.getExtFields();
         // Sort property
-        return new TreeMap<>(extFields);
+        return new TreeMap<String, String>(extFields);
     }
 
     public SessionCredentials getSessionCredentials() {

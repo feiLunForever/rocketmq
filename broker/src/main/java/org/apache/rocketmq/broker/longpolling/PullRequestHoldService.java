@@ -25,17 +25,17 @@ import org.apache.rocketmq.broker.BrokerController;
 import org.apache.rocketmq.common.ServiceThread;
 import org.apache.rocketmq.common.SystemClock;
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.ConsumeQueueExt;
 
 public class PullRequestHoldService extends ServiceThread {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
     protected static final String TOPIC_QUEUEID_SEPARATOR = "@";
     protected final BrokerController brokerController;
     private final SystemClock systemClock = new SystemClock();
     protected ConcurrentMap<String/* topic@queueId */, ManyPullRequest> pullRequestTable =
-        new ConcurrentHashMap<>(1024);
+        new ConcurrentHashMap<String, ManyPullRequest>(1024);
 
     public PullRequestHoldService(final BrokerController brokerController) {
         this.brokerController = brokerController;
@@ -52,7 +52,6 @@ public class PullRequestHoldService extends ServiceThread {
             }
         }
 
-        pullRequest.getRequestCommand().setSuspended(true);
         mpr.addPullRequest(pullRequest);
     }
 
@@ -79,7 +78,7 @@ public class PullRequestHoldService extends ServiceThread {
                 this.checkHoldRequest();
                 long costTime = this.systemClock.now() - beginLockTimestamp;
                 if (costTime > 5 * 1000) {
-                    log.warn("PullRequestHoldService: check hold pull request cost {}ms", costTime);
+                    log.info("[NOTIFYME] check hold request cost {} ms.", costTime);
                 }
             } catch (Throwable e) {
                 log.warn(this.getServiceName() + " service has exception. ", e);
@@ -91,9 +90,6 @@ public class PullRequestHoldService extends ServiceThread {
 
     @Override
     public String getServiceName() {
-        if (brokerController != null && brokerController.getBrokerConfig().isInBrokerContainer()) {
-            return this.brokerController.getBrokerIdentity().getIdentifier() + PullRequestHoldService.class.getSimpleName();
-        }
         return PullRequestHoldService.class.getSimpleName();
     }
 
@@ -107,9 +103,7 @@ public class PullRequestHoldService extends ServiceThread {
                 try {
                     this.notifyMessageArriving(topic, queueId, offset);
                 } catch (Throwable e) {
-                    log.error(
-                        "PullRequestHoldService: failed to check hold request failed, topic={}, queueId={}", topic,
-                        queueId, e);
+                    log.error("check hold request failed. topic={}, queueId={}", topic, queueId, e);
                 }
             }
         }
@@ -126,7 +120,7 @@ public class PullRequestHoldService extends ServiceThread {
         if (mpr != null) {
             List<PullRequest> requestList = mpr.cloneListAndClear();
             if (requestList != null) {
-                List<PullRequest> replayList = new ArrayList<>();
+                List<PullRequest> replayList = new ArrayList<PullRequest>();
 
                 for (PullRequest request : requestList) {
                     long newestOffset = maxOffset;
@@ -147,9 +141,7 @@ public class PullRequestHoldService extends ServiceThread {
                                 this.brokerController.getPullMessageProcessor().executeRequestWhenWakeup(request.getClientChannel(),
                                     request.getRequestCommand());
                             } catch (Throwable e) {
-                                log.error(
-                                    "PullRequestHoldService#notifyMessageArriving: failed to execute request when "
-                                        + "message matched, topic={}, queueId={}", topic, queueId, e);
+                                log.error("execute request when wakeup failed.", e);
                             }
                             continue;
                         }
@@ -160,9 +152,7 @@ public class PullRequestHoldService extends ServiceThread {
                             this.brokerController.getPullMessageProcessor().executeRequestWhenWakeup(request.getClientChannel(),
                                 request.getRequestCommand());
                         } catch (Throwable e) {
-                            log.error(
-                                "PullRequestHoldService#notifyMessageArriving: failed to execute request when time's "
-                                    + "up, topic={}, queueId={}", topic, queueId, e);
+                            log.error("execute request when wakeup failed.", e);
                         }
                         continue;
                     }
@@ -175,23 +165,5 @@ public class PullRequestHoldService extends ServiceThread {
                 }
             }
         }
-    }
-
-    public void notifyMasterOnline() {
-        for (ManyPullRequest mpr : this.pullRequestTable.values()) {
-            if (mpr == null || mpr.isEmpty()) {
-                continue;
-            }
-            for (PullRequest request : mpr.cloneListAndClear()) {
-                try {
-                    log.info("notify master online, wakeup {} {}", request.getClientChannel(), request.getRequestCommand());
-                    this.brokerController.getPullMessageProcessor().executeRequestWhenWakeup(request.getClientChannel(),
-                        request.getRequestCommand());
-                } catch (Throwable e) {
-                    log.error("execute request when master online failed.", e);
-                }
-            }
-        }
-
     }
 }

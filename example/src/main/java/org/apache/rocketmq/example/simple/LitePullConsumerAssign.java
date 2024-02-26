@@ -43,7 +43,7 @@ public class LitePullConsumerAssign {
             while (running) {
                 List<MessageExt> messageExts = litePullConsumer.poll();
                 System.out.printf("%s %n", messageExts);
-                litePullConsumer.commit();
+                litePullConsumer.commitSync();
             }
         } finally {
             litePullConsumer.shutdown();

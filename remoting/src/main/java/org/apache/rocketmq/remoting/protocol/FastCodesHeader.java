@@ -42,7 +42,7 @@ public interface FastCodesHeader {
         }
     }
 
-    void encode(ByteBuf out);
+    public void encode(ByteBuf out);
 
     void decode(HashMap<String, String> fields) throws RemotingCommandException;
 

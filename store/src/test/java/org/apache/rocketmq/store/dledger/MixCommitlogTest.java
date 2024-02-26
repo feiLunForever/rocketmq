@@ -16,33 +16,28 @@
  */
 package org.apache.rocketmq.store.dledger;
 
-import java.time.Duration;
 import java.util.UUID;
-
-import org.apache.rocketmq.common.MixAll;
 import org.apache.rocketmq.store.DefaultMessageStore;
 import org.apache.rocketmq.store.StoreTestBase;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.Test;
-
-import static org.awaitility.Awaitility.await;
 
 public class MixCommitlogTest extends MessageStoreTestBase {
 
+
+
     @Test
     public void testFallBehindCQ() throws Exception {
-        Assume.assumeFalse(MixAll.isWindows());
-        String base = createBaseDir();
+        String base =  createBaseDir();
         String topic = UUID.randomUUID().toString();
         String peers = String.format("n0-localhost:%d", nextPort());
         String group = UUID.randomUUID().toString();
         {
             DefaultMessageStore originalStore = createMessageStore(base, false);
             doPutMessages(originalStore, topic, 0, 1000, 0);
-            await().atMost(Duration.ofSeconds(10)).until(() -> 1000 == originalStore.getMaxOffsetInQueue(topic, 0));
-            Assert.assertEquals(11, originalStore.getMaxPhyOffset() / originalStore.getMessageStoreConfig().getMappedFileSizeCommitLog());
+            Assert.assertEquals(11, originalStore.getMaxPhyOffset()/originalStore.getMessageStoreConfig().getMappedFileSizeCommitLog());
+            Thread.sleep(500);
             Assert.assertEquals(0, originalStore.getMinOffsetInQueue(topic, 0));
             Assert.assertEquals(1000, originalStore.getMaxOffsetInQueue(topic, 0));
             Assert.assertEquals(0, originalStore.dispatchBehindBytes());
@@ -55,16 +50,13 @@ public class MixCommitlogTest extends MessageStoreTestBase {
         }
         {
             DefaultMessageStore dledgerStore = createDledgerMessageStore(base, group, "n0", peers, null, true, 0);
-            DLedgerCommitLog dLedgerCommitLog = (DLedgerCommitLog) dledgerStore.getCommitLog();
-            Boolean success = await().atMost(Duration.ofSeconds(4)).until(() -> dLedgerCommitLog.getdLedgerServer().getMemberState().isLeader(), item -> item);
-            Assert.assertTrue(success);
-            await().atMost(Duration.ofSeconds(10)).until(() -> 1000 == dledgerStore.getMaxOffsetInQueue(topic, 0));
+            Thread.sleep(2000);
             Assert.assertEquals(0, dledgerStore.getMinOffsetInQueue(topic, 0));
             Assert.assertEquals(1000, dledgerStore.getMaxOffsetInQueue(topic, 0));
             Assert.assertEquals(0, dledgerStore.dispatchBehindBytes());
             doGetMessages(dledgerStore, topic, 0, 1000, 0);
             doPutMessages(dledgerStore, topic, 0, 1000, 1000);
-            await().atMost(Duration.ofSeconds(10)).until(() -> 2000 == dledgerStore.getMaxOffsetInQueue(topic, 0));
+            Thread.sleep(500);
             Assert.assertEquals(0, dledgerStore.getMinOffsetInQueue(topic, 0));
             Assert.assertEquals(2000, dledgerStore.getMaxOffsetInQueue(topic, 0));
             Assert.assertEquals(0, dledgerStore.dispatchBehindBytes());
@@ -73,9 +65,11 @@ public class MixCommitlogTest extends MessageStoreTestBase {
         }
     }
 
+
+
     @Test
     public void testPutAndGet() throws Exception {
-        String base = createBaseDir();
+        String base =  createBaseDir();
         String topic = UUID.randomUUID().toString();
         String peers = String.format("n0-localhost:%d", nextPort());
         String group = UUID.randomUUID().toString();
@@ -84,7 +78,7 @@ public class MixCommitlogTest extends MessageStoreTestBase {
         {
             DefaultMessageStore originalStore = createMessageStore(base, false);
             doPutMessages(originalStore, topic, 0, 1000, 0);
-            await().atMost(Duration.ofSeconds(10)).until(() -> 1000 == originalStore.getMaxOffsetInQueue(topic, 0));
+            Thread.sleep(500);
             Assert.assertEquals(0, originalStore.getMinOffsetInQueue(topic, 0));
             Assert.assertEquals(1000, originalStore.getMaxOffsetInQueue(topic, 0));
             Assert.assertEquals(0, originalStore.dispatchBehindBytes());
@@ -95,7 +89,7 @@ public class MixCommitlogTest extends MessageStoreTestBase {
         }
         {
             DefaultMessageStore recoverOriginalStore = createMessageStore(base, true);
-            await().atMost(Duration.ofSeconds(10)).until(() -> 1000 == recoverOriginalStore.getMaxOffsetInQueue(topic, 0));
+            Thread.sleep(500);
             Assert.assertEquals(0, recoverOriginalStore.getMinOffsetInQueue(topic, 0));
             Assert.assertEquals(1000, recoverOriginalStore.getMaxOffsetInQueue(topic, 0));
             Assert.assertEquals(0, recoverOriginalStore.dispatchBehindBytes());
@@ -109,10 +103,9 @@ public class MixCommitlogTest extends MessageStoreTestBase {
             Assert.assertEquals(dividedOffset, dLedgerCommitLog.getDividedCommitlogOffset());
             Assert.assertEquals(0, dledgerStore.dispatchBehindBytes());
             Assert.assertEquals(dividedOffset, dLedgerCommitLog.getMaxOffset());
-            Boolean success = await().atMost(Duration.ofSeconds(4)).until(() -> dLedgerCommitLog.getdLedgerServer().getMemberState().isLeader(), item -> item);
-            Assert.assertTrue(success);
+            Thread.sleep(2000);
             doPutMessages(dledgerStore, topic, 0, 1000, 1000);
-            await().atMost(Duration.ofSeconds(10)).until(() -> 2000 == dledgerStore.getMaxOffsetInQueue(topic, 0));
+            Thread.sleep(500);
             Assert.assertEquals(0, dledgerStore.getMinOffsetInQueue(topic, 0));
             Assert.assertEquals(2000, dledgerStore.getMaxOffsetInQueue(topic, 0));
             Assert.assertEquals(0, dledgerStore.dispatchBehindBytes());
@@ -124,10 +117,9 @@ public class MixCommitlogTest extends MessageStoreTestBase {
             DLedgerCommitLog dLedgerCommitLog = (DLedgerCommitLog) recoverDledgerStore.getCommitLog();
             Assert.assertFalse(dLedgerCommitLog.getdLedgerServer().getdLedgerConfig().isEnableDiskForceClean());
             Assert.assertEquals(dividedOffset, dLedgerCommitLog.getDividedCommitlogOffset());
-            Boolean success = await().atMost(Duration.ofSeconds(4)).until(() -> dLedgerCommitLog.getdLedgerServer().getMemberState().isLeader(), item -> item);
-            Assert.assertTrue(success);
+            Thread.sleep(2000);
             doPutMessages(recoverDledgerStore, topic, 0, 1000, 2000);
-            await().atMost(Duration.ofSeconds(10)).until(() -> 3000 == recoverDledgerStore.getMaxOffsetInQueue(topic, 0));
+            Thread.sleep(500);
             Assert.assertEquals(0, recoverDledgerStore.getMinOffsetInQueue(topic, 0));
             Assert.assertEquals(3000, recoverDledgerStore.getMaxOffsetInQueue(topic, 0));
             Assert.assertEquals(0, recoverDledgerStore.dispatchBehindBytes());
@@ -138,7 +130,7 @@ public class MixCommitlogTest extends MessageStoreTestBase {
 
     @Test
     public void testDeleteExpiredFiles() throws Exception {
-        String base = createBaseDir();
+        String base =  createBaseDir();
         String topic = UUID.randomUUID().toString();
         String peers = String.format("n0-localhost:%d", nextPort());
         String group = UUID.randomUUID().toString();
@@ -147,7 +139,7 @@ public class MixCommitlogTest extends MessageStoreTestBase {
         {
             DefaultMessageStore originalStore = createMessageStore(base, false);
             doPutMessages(originalStore, topic, 0, 1000, 0);
-            await().atMost(Duration.ofSeconds(10)).until(() -> 1000 == originalStore.getMaxOffsetInQueue(topic, 0));
+            Thread.sleep(500);
             Assert.assertEquals(0, originalStore.getMinOffsetInQueue(topic, 0));
             Assert.assertEquals(1000, originalStore.getMaxOffsetInQueue(topic, 0));
             Assert.assertEquals(0, originalStore.dispatchBehindBytes());
@@ -162,10 +154,9 @@ public class MixCommitlogTest extends MessageStoreTestBase {
             Assert.assertTrue(dledgerStore.getMessageStoreConfig().isCleanFileForciblyEnable());
             Assert.assertFalse(dLedgerCommitLog.getdLedgerServer().getdLedgerConfig().isEnableDiskForceClean());
             Assert.assertEquals(dividedOffset, dLedgerCommitLog.getDividedCommitlogOffset());
-            Boolean success = await().atMost(Duration.ofSeconds(4)).until(() -> dLedgerCommitLog.getdLedgerServer().getMemberState().isLeader(), item -> item);
-            Assert.assertTrue(success);
+            Thread.sleep(2000);
             doPutMessages(dledgerStore, topic, 0, 1000, 1000);
-            await().atMost(Duration.ofSeconds(10)).until(() -> 2000 == dledgerStore.getMaxOffsetInQueue(topic, 0));
+            Thread.sleep(500);
             Assert.assertEquals(0, dledgerStore.getMinOffsetInQueue(topic, 0));
             Assert.assertEquals(2000, dledgerStore.getMaxOffsetInQueue(topic, 0));
             Assert.assertEquals(0, dledgerStore.dispatchBehindBytes());

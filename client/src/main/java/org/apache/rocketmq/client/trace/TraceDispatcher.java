@@ -34,7 +34,7 @@ public interface TraceDispatcher {
     void start(String nameSrvAddr, AccessChannel accessChannel) throws MQClientException;
 
     /**
-     * Append the transferring data
+     * Append the transfering data
      * @param ctx data information
      * @return
      */

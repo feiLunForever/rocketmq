@@ -17,14 +17,14 @@
 package org.apache.rocketmq.store.stats;
 
 import org.apache.rocketmq.common.constant.LoggerName;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
-import org.apache.rocketmq.store.MessageStore;
+import org.apache.rocketmq.logging.InternalLogger;
+import org.apache.rocketmq.logging.InternalLoggerFactory;
+import org.apache.rocketmq.store.DefaultMessageStore;
 
 public class BrokerStats {
-    private static final Logger log = LoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
+    private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.BROKER_LOGGER_NAME);
 
-    private final MessageStore defaultMessageStore;
+    private final DefaultMessageStore defaultMessageStore;
 
     private volatile long msgPutTotalYesterdayMorning;
 
@@ -34,7 +34,7 @@ public class BrokerStats {
 
     private volatile long msgGetTotalTodayMorning;
 
-    public BrokerStats(MessageStore defaultMessageStore) {
+    public BrokerStats(DefaultMessageStore defaultMessageStore) {
         this.defaultMessageStore = defaultMessageStore;
     }
 
@@ -43,9 +43,9 @@ public class BrokerStats {
         this.msgGetTotalYesterdayMorning = this.msgGetTotalTodayMorning;
 
         this.msgPutTotalTodayMorning =
-            this.defaultMessageStore.getBrokerStatsManager().getBrokerPutNumsWithoutSystemTopic();
+            this.defaultMessageStore.getStoreStatsService().getPutMessageTimesTotal();
         this.msgGetTotalTodayMorning =
-            this.defaultMessageStore.getBrokerStatsManager().getBrokerGetNumsWithoutSystemTopic();
+            this.defaultMessageStore.getStoreStatsService().getGetMessageTransferedMsgCount().longValue();
 
         log.info("yesterday put message total: {}", msgPutTotalTodayMorning - msgPutTotalYesterdayMorning);
         log.info("yesterday get message total: {}", msgGetTotalTodayMorning - msgGetTotalYesterdayMorning);
@@ -84,10 +84,10 @@ public class BrokerStats {
     }
 
     public long getMsgPutTotalTodayNow() {
-        return this.defaultMessageStore.getBrokerStatsManager().getBrokerPutNumsWithoutSystemTopic();
+        return this.defaultMessageStore.getStoreStatsService().getPutMessageTimesTotal();
     }
 
     public long getMsgGetTotalTodayNow() {
-        return this.defaultMessageStore.getBrokerStatsManager().getBrokerGetNumsWithoutSystemTopic();
+        return this.defaultMessageStore.getStoreStatsService().getGetMessageTransferedMsgCount().longValue();
     }
 }

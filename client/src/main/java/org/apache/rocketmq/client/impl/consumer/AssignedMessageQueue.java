@@ -30,11 +30,15 @@ public class AssignedMessageQueue {
     private RebalanceImpl rebalanceImpl;
 
     public AssignedMessageQueue() {
-        assignedMessageQueueState = new ConcurrentHashMap<>();
+        assignedMessageQueueState = new ConcurrentHashMap<MessageQueue, MessageQueueState>();
     }
 
     public void setRebalanceImpl(RebalanceImpl rebalanceImpl) {
         this.rebalanceImpl = rebalanceImpl;
+    }
+
+    public Set<MessageQueue> messageQueues() {
+        return assignedMessageQueueState.keySet();
     }
 
     public boolean isPaused(MessageQueue messageQueue) {

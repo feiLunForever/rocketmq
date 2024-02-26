@@ -17,10 +17,9 @@
 
 package org.apache.rocketmq.test.client.producer.querymsg;
 
+import org.apache.log4j.Logger;
 import org.apache.rocketmq.common.message.MessageClientExt;
 import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.logging.org.slf4j.Logger;
-import org.apache.rocketmq.logging.org.slf4j.LoggerFactory;
 import org.apache.rocketmq.test.base.BaseConf;
 import org.apache.rocketmq.test.client.rmq.RMQNormalConsumer;
 import org.apache.rocketmq.test.client.rmq.RMQNormalProducer;
@@ -35,7 +34,7 @@ import org.junit.Test;
 import static com.google.common.truth.Truth.assertThat;
 
 public class QueryMsgByIdIT extends BaseConf {
-    private static Logger logger = LoggerFactory.getLogger(QueryMsgByIdIT.class);
+    private static Logger logger = Logger.getLogger(QueryMsgByIdIT.class);
     private RMQNormalProducer producer = null;
     private RMQNormalConsumer consumer = null;
     private String topic = null;
@@ -44,8 +43,8 @@ public class QueryMsgByIdIT extends BaseConf {
     public void setUp() {
         topic = initTopic();
         logger.info(String.format("use topic: %s;", topic));
-        producer = getProducer(NAMESRV_ADDR, topic);
-        consumer = getConsumer(NAMESRV_ADDR, topic, "*", new RMQNormalListener());
+        producer = getProducer(nsAddr, topic);
+        consumer = getConsumer(nsAddr, topic, "*", new RMQNormalListener());
     }
 
     @After
@@ -58,7 +57,7 @@ public class QueryMsgByIdIT extends BaseConf {
         int msgSize = 20;
         producer.send(msgSize);
         Assert.assertEquals("Not all are sent", msgSize, producer.getAllUndupMsgBody().size());
-        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), CONSUME_TIME);
+        consumer.getListener().waitForMessageConsume(producer.getAllMsgBody(), consumeTime);
         Assert.assertEquals("Not all are consumed", 0, VerifyUtils.verify(producer.getAllMsgBody(),
             consumer.getListener().getAllMsgBody()));
 

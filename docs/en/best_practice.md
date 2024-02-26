@@ -72,7 +72,7 @@ Thirdly, the producer is a virtual machine with low reliability, which is not su
 In conclusion, it is recommended that the retry process must be controlled by the application.
 
 ### 1.3 Send message by oneway
-Typically, this is the process by which messages are sent:
+Typically, this is the process by which messages are sent：
 
 - Client send request to server
 - Server process request

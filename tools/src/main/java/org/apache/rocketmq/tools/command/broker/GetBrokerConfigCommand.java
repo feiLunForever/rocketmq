@@ -45,7 +45,7 @@ public class GetBrokerConfigCommand implements SubCommand {
 
     @Override
     public String commandDesc() {
-        return "Get broker config by cluster or special broker";
+        return "Get broker config by cluster or special broker!";
     }
 
     @Override
@@ -85,28 +85,19 @@ public class GetBrokerConfigCommand implements SubCommand {
                 Map<String, List<String>> masterAndSlaveMap
                     = CommandUtil.fetchMasterAndSlaveDistinguish(defaultMQAdminExt, clusterName);
 
-                for (String masterAddr : masterAndSlaveMap.keySet()) {
-
-                    if (masterAddr == null) {
-                        continue;
-                    }
+                for (Entry<String, List<String>> masterAndSlaveEntry : masterAndSlaveMap.entrySet()) {
 
                     getAndPrint(
-                        defaultMQAdminExt,
-                        String.format("============Master: %s============\n", masterAddr),
-                        masterAddr
+                            defaultMQAdminExt,
+                            String.format("============Master: %s============\n", masterAndSlaveEntry.getKey()),
+                            masterAndSlaveEntry.getKey()
                     );
-
-                    for (String slaveAddr : masterAndSlaveMap.get(masterAddr)) {
-
-                        if (slaveAddr == null) {
-                            continue;
-                        }
+                    for (String slaveAddr : masterAndSlaveEntry.getValue()) {
 
                         getAndPrint(
-                            defaultMQAdminExt,
-                            String.format("============My Master: %s=====Slave: %s============\n", masterAddr, slaveAddr),
-                            slaveAddr
+                                defaultMQAdminExt,
+                                String.format("============My Master: %s=====Slave: %s============\n", masterAndSlaveEntry.getKey(), slaveAddr),
+                                slaveAddr
                         );
                     }
                 }
@@ -125,10 +116,6 @@ public class GetBrokerConfigCommand implements SubCommand {
         MQBrokerException, RemotingSendRequestException {
 
         System.out.print(printPrefix);
-
-        if (addr.equals(CommandUtil.NO_MASTER_PLACEHOLDER)) {
-            return;
-        }
 
         Properties properties = defaultMQAdminExt.getBrokerConfig(addr);
         if (properties == null) {

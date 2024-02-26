@@ -70,7 +70,6 @@ public class OneMessageTransfer extends AbstractReferenceCounted implements File
         return 0;
     }
 
-
     @Override
     public FileRegion retain() {
         super.retain();
