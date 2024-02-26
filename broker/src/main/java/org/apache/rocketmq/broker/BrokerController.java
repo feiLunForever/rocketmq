@@ -152,7 +152,7 @@ public class BrokerController {
     private final BrokerFastFailure brokerFastFailure;
     private final Configuration configuration;
     private final Map<Class, AccessValidator> accessValidatorMap = new HashMap<Class, AccessValidator>();
-    private MessageStore messageStore;
+    private MessageStore messageStore; // 用于 Message 的存储、管理的依赖，消息持久化
     private RemotingServer remotingServer;
     private RemotingServer fastRemotingServer;
     private TopicConfigManager topicConfigManager;
@@ -851,7 +851,7 @@ public class BrokerController {
     }
 
     public void start() throws Exception {
-        if (this.messageStore != null) {
+        if (this.messageStore != null) { // 用于 Message 的存储、管理的依赖，消息持久化
             this.messageStore.start();
         }
 
@@ -984,17 +984,29 @@ public class BrokerController {
         }
     }
 
+    /**
+     * Broker 会去请求所有的 NameServer，查询自己传给 NameServer 的数据，然后跟自己本地的数据版本做一个对比。
+     *
+     * 只要有任何一台 NameServer 的数据是旧的，Broker 就会重新执行心跳
+     * @param clusterName
+     * @param brokerAddr
+     * @param brokerName
+     * @param brokerId
+     * @param timeoutMills
+     * @return
+     */
     private boolean needRegister(final String clusterName,
         final String brokerAddr,
         final String brokerName,
         final long brokerId,
         final int timeoutMills) {
-
+        // 心跳传输的数据
         TopicConfigSerializeWrapper topicConfigWrapper = this.getTopicConfigManager().buildTopicConfigSerializeWrapper();
+        // 对所有 NameServer 数据判定之后的结果
         List<Boolean> changeList = brokerOuterAPI.needRegister(clusterName, brokerAddr, brokerName, brokerId, topicConfigWrapper, timeoutMills);
         boolean needRegister = false;
         for (Boolean changed : changeList) {
-            if (changed) {
+            if (changed) { // 但凡有一台 NameServer 的数据是旧的, 都要执行心跳
                 needRegister = true;
                 break;
             }

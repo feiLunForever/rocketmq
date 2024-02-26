@@ -914,7 +914,7 @@ public class MQClientInstance {
         if (null == group || null == producer) {
             return false;
         }
-
+        // 这里的 this 指的就是 MQClientInstance
         MQProducerInner prev = this.producerTable.putIfAbsent(group, producer);
         if (prev != null) {
             log.warn("the producer group[{}] exist already.", group);

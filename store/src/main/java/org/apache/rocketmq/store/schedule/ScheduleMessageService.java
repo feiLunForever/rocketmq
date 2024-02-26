@@ -119,7 +119,7 @@ public class ScheduleMessageService extends ConfigManager {
     public long computeDeliverTimestamp(final int delayLevel, final long storeTimestamp) {
         Long time = this.delayLevelTable.get(delayLevel);
         if (time != null) {
-            return time + storeTimestamp;
+            return time + storeTimestamp;  // 消息的存储时间 + 延迟等级对应的时间
         }
 
         return storeTimestamp + 1000;
@@ -327,10 +327,13 @@ public class ScheduleMessageService extends ConfigManager {
         msgInner.setReconsumeTimes(msgExt.getReconsumeTimes());
 
         msgInner.setWaitStoreMsgOK(false);
+        // 清除掉延迟信息的标记
         MessageAccessor.clearProperty(msgInner, MessageConst.PROPERTY_DELAY_TIME_LEVEL);
 
+        // 设置真实的 Topic
         msgInner.setTopic(msgInner.getProperty(MessageConst.PROPERTY_REAL_TOPIC));
 
+        // 拿到真实的 MessageQueueId
         String queueIdStr = msgInner.getProperty(MessageConst.PROPERTY_REAL_QUEUE_ID);
         int queueId = Integer.parseInt(queueIdStr);
         msgInner.setQueueId(queueId);

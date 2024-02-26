@@ -238,7 +238,8 @@ public abstract class RebalanceImpl {
 
     private void rebalanceByTopic(final String topic, final boolean isOrder) {
         switch (messageModel) {
-            case BROADCASTING: {
+            case BROADCASTING: { // 广播模式
+                // 从本地内存中获取该topic下的消息消费队列集合
                 Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
                 if (mqSet != null) {
                     boolean changed = this.updateProcessQueueTableInRebalance(topic, mqSet, isOrder);
@@ -255,8 +256,10 @@ public abstract class RebalanceImpl {
                 }
                 break;
             }
-            case CLUSTERING: {
+            case CLUSTERING: { // 集群模式
+                // 从本地内存中获取该topic下的消息消费队列集合
                 Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
+                // 根据topic和consumerGroup为向Broker端发送获取该消费组下消费者Id列表的 RPC 通信请求
                 List<String> cidAll = this.mQClientFactory.findConsumerIdList(topic, consumerGroup);
                 if (null == mqSet) {
                     if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
@@ -277,7 +280,7 @@ public abstract class RebalanceImpl {
 
                     AllocateMessageQueueStrategy strategy = this.allocateMessageQueueStrategy;
 
-                    List<MessageQueue> allocateResult = null;
+                    List<MessageQueue> allocateResult = null; // 按照算法策略分配队列
                     try {
                         allocateResult = strategy.allocate(
                             this.consumerGroup,
@@ -295,6 +298,7 @@ public abstract class RebalanceImpl {
                         allocateResultSet.addAll(allocateResult);
                     }
 
+                    // 在负载均衡中更新 ProcessQueueTable
                     boolean changed = this.updateProcessQueueTableInRebalance(topic, allocateResultSet, isOrder);
                     if (changed) {
                         log.info(
@@ -377,7 +381,7 @@ public abstract class RebalanceImpl {
 
                 long nextOffset = -1L;
                 try {
-                    nextOffset = this.computePullFromWhereWithException(mq);
+                    nextOffset = this.computePullFromWhereWithException(mq); // 计算偏移量
                 } catch (Exception e) {
                     log.info("doRebalance, {}, compute offset failed, {}", consumerGroup, mq);
                     continue;

@@ -24,7 +24,7 @@ public enum ReadOffsetType {
     /**
      * From storage
      */
-    READ_FROM_STORE,
+    READ_FROM_STORE, // 代表会从远端（即 Broker）获取 offset
     /**
      * From memory,then from storage
      */

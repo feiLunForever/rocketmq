@@ -199,17 +199,20 @@ public class MappedFileQueue {
 
     public MappedFile getLastMappedFile(final long startOffset, boolean needCreate) {
         long createOffset = -1;
-        MappedFile mappedFileLast = getLastMappedFile();
+        MappedFile mappedFileLast = getLastMappedFile(); // 首次启动, mappedFile 都是空的, 所以这里肯定拿不到东西
 
         if (mappedFileLast == null) {
+            // 由于 startOffset 传入的是 0, 那么这里的 createOffset 算出来也是 0
             createOffset = startOffset - (startOffset % this.mappedFileSize);
         }
 
         if (mappedFileLast != null && mappedFileLast.isFull()) {
+            // mappedFileLast 一定为 NULL, 所以这个逻辑不会走
             createOffset = mappedFileLast.getFileFromOffset() + this.mappedFileSize;
         }
 
         if (createOffset != -1 && needCreate) {
+            // 调用核心方法, 创建 MappedFile
             return tryCreateMappedFile(createOffset);
         }
 
@@ -226,6 +229,7 @@ public class MappedFileQueue {
     protected MappedFile doCreateMappedFile(String nextFilePath, String nextNextFilePath) {
         MappedFile mappedFile = null;
 
+        // 实际的文件创建是由 putRequestAndReturnMappedFile 来执行的
         if (this.allocateMappedFileService != null) {
             mappedFile = this.allocateMappedFileService.putRequestAndReturnMappedFile(nextFilePath,
                     nextNextFilePath, this.mappedFileSize);
@@ -241,6 +245,8 @@ public class MappedFileQueue {
             if (this.mappedFiles.isEmpty()) {
                 mappedFile.setFirstCreateInQueue(true);
             }
+            // 这里只是负责把由 allocateMappedFileService 创建好的 mappedFile
+            // 添加到 mappedFileQueue 当中管理起来
             this.mappedFiles.add(mappedFile);
         }
 
@@ -251,11 +257,16 @@ public class MappedFileQueue {
         return getLastMappedFile(startOffset, true);
     }
 
+    /**
+     * 来直接获取的当前正在使用的 MappedFile
+     * @return
+     */
     public MappedFile getLastMappedFile() {
         MappedFile mappedFileLast = null;
 
         while (!this.mappedFiles.isEmpty()) {
             try {
+                // 可以看到, 就是直接获取的数组最后一个元素
                 mappedFileLast = this.mappedFiles.get(this.mappedFiles.size() - 1);
                 break;
             } catch (IndexOutOfBoundsException e) {

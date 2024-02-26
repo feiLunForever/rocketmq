@@ -58,19 +58,19 @@ public class Validators {
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, "the message is null");
         }
         // topic
-        Validators.checkTopic(msg.getTopic());
+        Validators.checkTopic(msg.getTopic()); // 检查 Topic 是否合法
         Validators.isNotAllowedSendTopic(msg.getTopic());
 
         // body
-        if (null == msg.getBody()) {
+        if (null == msg.getBody()) { // 判断 body 字段是否是 nil
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, "the message body is null");
         }
 
-        if (0 == msg.getBody().length) {
+        if (0 == msg.getBody().length) { // 判断 body 是否长度为 0
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL, "the message body length is zero");
         }
 
-        if (msg.getBody().length > defaultMQProducer.getMaxMessageSize()) {
+        if (msg.getBody().length > defaultMQProducer.getMaxMessageSize()) { // 判断 body 的长度是否超过最大的长度, MaxMessageSize 默认是 4M
             throw new MQClientException(ResponseCode.MESSAGE_ILLEGAL,
                 "the message body size over max value, MAX: " + defaultMQProducer.getMaxMessageSize());
         }

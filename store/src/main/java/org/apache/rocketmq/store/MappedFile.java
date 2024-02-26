@@ -43,6 +43,9 @@ import org.apache.rocketmq.store.config.MessageStoreConfig;
 import org.apache.rocketmq.store.util.LibC;
 import sun.nio.ch.DirectBuffer;
 
+/**
+ * 对磁盘文件的封装
+ */
 public class MappedFile extends ReferenceResource {
     public static final int OS_PAGE_SIZE = 1024 * 4;
     protected static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
@@ -63,6 +66,11 @@ public class MappedFile extends ReferenceResource {
     private String fileName;
     private long fileFromOffset;
     private File file;
+    /**
+     * MappedByteBuffer 就是将创建好的 CommitLog 文件通过 FileChannel
+     * 的 map 方法映射到内存中，这样后续对 CommitLog 文件的修改可以直接操作内存，
+     * 不用每次都用 IO 从磁盘获取数据
+     */
     private MappedByteBuffer mappedByteBuffer;
     private volatile long storeTimestamp = 0;
     private boolean firstCreateInQueue = false;

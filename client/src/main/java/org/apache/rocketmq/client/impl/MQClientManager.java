@@ -45,12 +45,13 @@ public class MQClientManager {
     }
 
     public MQClientInstance getOrCreateMQClientInstance(final ClientConfig clientConfig, RPCHook rpcHook) {
-        String clientId = clientConfig.buildMQClientId();
-        MQClientInstance instance = this.factoryTable.get(clientId);
-        if (null == instance) {
-            instance =
+        String clientId = clientConfig.buildMQClientId(); // 生成 clientId
+        MQClientInstance instance = this.factoryTable.get(clientId); // 从这个 table 里先获取一次
+        if (null == instance) { // 第一次进来, table 肯定没有数据, 所以它一定是 null
+            instance = // 所以肯定会进到这里来, 调用构造函数将其实例化出来
                 new MQClientInstance(clientConfig.cloneClientConfig(),
                     this.factoryIndexGenerator.getAndIncrement(), clientId, rpcHook);
+            // 生成好之后就会写入 factoryTable 中, 所以后续再次调用这个方法就能够获取到了
             MQClientInstance prev = this.factoryTable.putIfAbsent(clientId, instance);
             if (prev != null) {
                 instance = prev;
