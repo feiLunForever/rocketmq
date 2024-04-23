@@ -80,7 +80,7 @@ public class ConsumerManageProcessor extends AsyncNettyRequestProcessor implemen
             this.brokerController.getConsumerManager().getConsumerGroupInfo(
                 requestHeader.getConsumerGroup());
         if (consumerGroupInfo != null) {
-            List<String> clientIds = consumerGroupInfo.getAllClientId();
+            List<String> clientIds = consumerGroupInfo.getAllClientId(); // 拿到所有的 Consumer 的 ClientId 集合
             if (!clientIds.isEmpty()) {
                 GetConsumerListByGroupResponseBody body = new GetConsumerListByGroupResponseBody();
                 body.setConsumerIdList(clientIds);

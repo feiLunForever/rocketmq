@@ -626,6 +626,8 @@ public class CommitLog {
                     msg.setDelayTimeLevel(this.defaultMessageStore.getScheduleMessageService().getMaxDelayLevel());
                 }
 
+                // SCHEDULE_TOPIC_XXXX 总共有 18 个 MessageQueue，对应着延迟消息的 18 个等级，
+                // RocektMQ 会根据指定的 DelayTimeLevel 来决定选择哪个 MessageQueue
                 topic = TopicValidator.RMQ_SYS_SCHEDULE_TOPIC;
                 int queueId = ScheduleMessageService.delayLevel2QueueId(msg.getDelayTimeLevel());
 

@@ -22,6 +22,8 @@ import org.apache.rocketmq.common.message.MessageQueue;
 
 /**
  * Average Hashing queue algorithm
+ * 平均哈希队列算法
+ * 能均分就均分，不能均分就先保证每个 Consumer 都拿到相同数量的 MessgeQueue，然后再将剩下的从头开始分给每个 Consumer
  */
 public class AllocateMessageQueueAveragely extends AbstractAllocateMessageQueueStrategy {
 
@@ -39,8 +41,9 @@ public class AllocateMessageQueueAveragely extends AbstractAllocateMessageQueueS
         int averageSize =
             mqAll.size() <= cidAll.size() ? 1 : (mod > 0 && index < mod ? mqAll.size() / cidAll.size()
                 + 1 : mqAll.size() / cidAll.size());
+        // startIndex 代表了当前这个 Consumer 从 MessageQueue 数组的哪个位置开始取
         int startIndex = (mod > 0 && index < mod) ? index * averageSize : index * averageSize + mod;
-        int range = Math.min(averageSize, mqAll.size() - startIndex);
+        int range = Math.min(averageSize, mqAll.size() - startIndex); // 代表当前这个 Consumer 获取到了多少个 MessageQueue
         for (int i = 0; i < range; i++) {
             result.add(mqAll.get((startIndex + i) % mqAll.size()));
         }

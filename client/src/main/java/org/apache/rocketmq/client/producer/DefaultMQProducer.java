@@ -201,8 +201,8 @@ public class DefaultMQProducer extends ClientConfig implements MQProducer {
      */
     public DefaultMQProducer(final String namespace, final String producerGroup, RPCHook rpcHook) {
         this.namespace = namespace;
-        this.producerGroup = producerGroup;
-        defaultMQProducerImpl = new DefaultMQProducerImpl(this, rpcHook);
+        this.producerGroup = producerGroup; // 赋值 ProducerGroup 名称
+        defaultMQProducerImpl = new DefaultMQProducerImpl(this, rpcHook); // 使用 RocketMQ 对 Producer 的默认实现
     }
 
     /**

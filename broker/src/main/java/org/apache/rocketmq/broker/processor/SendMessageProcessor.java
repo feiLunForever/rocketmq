@@ -191,8 +191,8 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
 
         if (msgExt.getReconsumeTimes() >= maxReconsumeTimes
             || delayLevel < 0) {
-            newTopic = MixAll.getDLQTopic(requestHeader.getGroup());
-            queueIdInt = ThreadLocalRandom.current().nextInt(99999999) % DLQ_NUMS_PER_GROUP;
+            newTopic = MixAll.getDLQTopic(requestHeader.getGroup());  // 将目标 Topic 修改成死信队列的 Topic
+            queueIdInt = ThreadLocalRandom.current().nextInt(99999999) % DLQ_NUMS_PER_GROUP; // 计算出来还是 0
 
             topicConfig = this.brokerController.getTopicConfigManager().createTopicInSendMessageBackMethod(newTopic,
                     DLQ_NUMS_PER_GROUP,
@@ -313,7 +313,7 @@ public class SendMessageProcessor extends AbstractSendMessageProcessor implement
         }
 
         CompletableFuture<PutMessageResult> putMessageResult = null;
-        String transFlag = origProps.get(MessageConst.PROPERTY_TRANSACTION_PREPARED);
+        String transFlag = origProps.get(MessageConst.PROPERTY_TRANSACTION_PREPARED); // 区分是否是事务消息
         if (Boolean.parseBoolean(transFlag)) {
             if (this.brokerController.getBrokerConfig().isRejectTransactionMessage()) {
                 response.setCode(ResponseCode.NO_PERMISSION);

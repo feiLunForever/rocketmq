@@ -72,6 +72,14 @@ public class ClientManageProcessor extends AsyncNettyRequestProcessor implements
         return false;
     }
 
+    /**
+     * 将 Consumer 的信息写入到 Broker 的 ConsumerManager 当中，
+     * 为当前的负载均衡提供元数据，
+     * 然后 Broker 在处理请求时，如果发现有新加入的 Consumer，就会通知所有的 Consumer 执行 Rebalance
+     * @param ctx
+     * @param request
+     * @return
+     */
     public RemotingCommand heartBeat(ChannelHandlerContext ctx, RemotingCommand request) {
         RemotingCommand response = RemotingCommand.createResponseCommand(null);
         HeartbeatData heartbeatData = HeartbeatData.decode(request.getBody(), HeartbeatData.class);

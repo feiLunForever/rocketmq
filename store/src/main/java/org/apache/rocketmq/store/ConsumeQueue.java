@@ -29,6 +29,17 @@ import org.apache.rocketmq.logging.InternalLoggerFactory;
 import org.apache.rocketmq.store.config.BrokerRole;
 import org.apache.rocketmq.store.config.StorePathConfigHelper;
 
+/**
+ * 为了能够快速定位 Message 而创建的索引
+ *
+ * 一个 ConsumeQueue 文件中会包含 30 万条 ConsumeQueue 记录，而每条记录长度为 20 字节，
+ * 那么一个 ConsumeQueue 文件的大小就为 20 * 300000 = 6000000，即约等于 6000000 / 1024 / 1024，也就是大约 5.72M
+ *
+ * 一条 ConsumeQueue 记录总共 20 个字节，共由 3 个部分组成：
+ *   物理偏移量：占 8 个字节，即在 CommitLog 文件当中的实际偏移量。
+ *   消息体长度：占 4 个字节，代表索引指向的这条 Message 的长度。
+ *   Tag 哈希值：占 8 个字节，这个也是 RocketMQ 的特性 —— 消息过滤的原理。在 Broker 侧消费 Message 时，即可根据 Consumer 指定的 Tag 来对消息进行过滤。
+ */
 public class ConsumeQueue {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.STORE_LOGGER_NAME);
 
@@ -485,9 +496,9 @@ public class ConsumeQueue {
 
         this.byteBufferIndex.flip();
         this.byteBufferIndex.limit(CQ_STORE_UNIT_SIZE);
-        this.byteBufferIndex.putLong(offset);
-        this.byteBufferIndex.putInt(size);
-        this.byteBufferIndex.putLong(tagsCode);
+        this.byteBufferIndex.putLong(offset); // 物理偏移量
+        this.byteBufferIndex.putInt(size); // 消息体长度
+        this.byteBufferIndex.putLong(tagsCode); // Tag 的哈希值
 
         final long expectLogicOffset = cqOffset * CQ_STORE_UNIT_SIZE;
 

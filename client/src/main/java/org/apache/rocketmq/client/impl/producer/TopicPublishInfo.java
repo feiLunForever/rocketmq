@@ -32,7 +32,7 @@ public class TopicPublishInfo {
      * 比如 2 3 0 1
      */
     private volatile ThreadLocalIndex sendWhichQueue = new ThreadLocalIndex();
-    private TopicRouteData topicRouteData;
+    private TopicRouteData topicRouteData; // 路由数据
 
     public boolean isOrderTopic() {
         return orderTopic;
@@ -93,6 +93,21 @@ public class TopicPublishInfo {
         }
     }
 
+    /**
+     * 举个具体点的例子，假设最初生成的随机值是 10，并总共有 4 个 MessageQueue，那么首次计算出来的下标就是 10 % 4 = 2，首次选择的结果就是下标为 2 的 MessageQueue。
+     *
+     * 同理，第二次选择时由于 this.threadLocalIndex.get(); 拿到的值一定不为空，所以就会在之前的值上自增，那么第二次的计算逻辑就是 11 % 4 = 3，即下标为 3 的 MessageQueue。
+     *
+     * 相信大家也发现了，基于这种选择的算法，MessageQueue 列表中的每个 MessageQueue 是按着顺序挨个被选择出来的，啥意思呢？还是拿上面这个例子说明一下，首次选择出来的下标是 2，那么后续在正常情况下被选择到的 MessageQueue 依次是：
+     *
+     * 2 3 0 1
+     * 2 3 0 1
+     * 2 3 0 1
+     * .......
+     *
+     * 一个线性轮询的负载均衡算法，可以将流量均匀地分发给不同的 MessageQueue，而 MessageQueue 分布在不同的 Broker 上，这样也达到了对最终 Message 存储的负载均衡，避免造成数据倾斜。
+     * @return
+     */
     public MessageQueue selectOneMessageQueue() {
         int index = this.sendWhichQueue.incrementAndGet(); // 拿到 sendWhichQueue
         int pos = Math.abs(index) % this.messageQueueList.size(); // 对 messageQueue 列表长度取余

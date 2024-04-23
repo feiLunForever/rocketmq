@@ -40,7 +40,7 @@ public class AllocateMappedFileService extends ServiceThread {
     private ConcurrentMap<String, AllocateRequest> requestTable =
         new ConcurrentHashMap<String, AllocateRequest>();
     private PriorityBlockingQueue<AllocateRequest> requestQueue =
-        new PriorityBlockingQueue<AllocateRequest>();
+        new PriorityBlockingQueue<AllocateRequest>(); // 将创建文件的请求写入内存队列中
     private volatile boolean hasException = false;
     private DefaultMessageStore messageStore;
 

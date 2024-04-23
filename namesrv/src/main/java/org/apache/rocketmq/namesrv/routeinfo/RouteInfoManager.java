@@ -54,6 +54,11 @@ public class RouteInfoManager {
     private static final InternalLogger log = InternalLoggerFactory.getLogger(LoggerName.NAMESRV_LOGGER_NAME);
     private final static long BROKER_CHANNEL_EXPIRED_TIME = 1000 * 60 * 2;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
+    /**
+     * Key 就是 Topic，Value 就是 MessageQueue 在 Broker 中的分布，
+     * 由于会存在多个 Broker，所以这也是个 Map，
+     * 这个子 Map 的 Key 是 Broker 的名称，Value 则是 MessageQueue 对应的数据
+     */
     private final HashMap<String/* topic */, Map<String /* brokerName */ , QueueData>> topicQueueTable;
     private final HashMap<String/* brokerName */, BrokerData> brokerAddrTable;
     private final HashMap<String/* clusterName */, Set<String/* brokerName */>> clusterAddrTable;
@@ -61,10 +66,10 @@ public class RouteInfoManager {
     private final HashMap<String/* brokerAddr */, List<String>/* Filter Server */> filterServerTable;
 
     public RouteInfoManager() {
-        this.topicQueueTable = new HashMap<>(1024);
+        this.topicQueueTable = new HashMap<>(1024); // (topic, MessageQueue 在 Broker 中的分布)
         this.brokerAddrTable = new HashMap<>(128);
         this.clusterAddrTable = new HashMap<>(32);
-        this.brokerLiveTable = new HashMap<>(256);
+        this.brokerLiveTable = new HashMap<>(256); // 用于保存存活（活跃）的 Broker
         this.filterServerTable = new HashMap<>(256);
     }
 
@@ -155,7 +160,7 @@ public class RouteInfoManager {
                 boolean registerFirst = false;
 
                 BrokerData brokerData = this.brokerAddrTable.get(brokerName);
-                if (null == brokerData) {
+                if (null == brokerData) { // 表明是首次注册, 第一次一定会走到这里来
                     registerFirst = true;
                     brokerData = new BrokerData(clusterName, brokerName, new HashMap<>());
                     this.brokerAddrTable.put(brokerName, brokerData);
@@ -188,6 +193,7 @@ public class RouteInfoManager {
                                 topicConfigWrapper.getTopicConfigTable();
                         if (tcTable != null) {
                             for (Map.Entry<String, TopicConfig> entry : tcTable.entrySet()) {
+                                // 遍历这个 Map, 为此 Map 的所有 Topic 初始化 MessageQueue 的数据
                                 this.createAndUpdateQueueData(brokerName, entry.getValue());
                             }
                         }
@@ -196,7 +202,7 @@ public class RouteInfoManager {
 
                 BrokerLiveInfo prevBrokerLiveInfo = this.brokerLiveTable.put(brokerAddr,
                         new BrokerLiveInfo(
-                                System.currentTimeMillis(),
+                                System.currentTimeMillis(), // 更新心跳的时间
                                 topicConfigWrapper.getDataVersion(),
                                 channel,
                                 haServerAddr));
@@ -253,7 +259,7 @@ public class RouteInfoManager {
     }
 
     private void createAndUpdateQueueData(final String brokerName, final TopicConfig topicConfig) {
-        QueueData queueData = new QueueData();
+        QueueData queueData = new QueueData(); // 根据 Broker 传过来的数据构建 MessageQueue 的数据
         queueData.setBrokerName(brokerName);
         queueData.setWriteQueueNums(topicConfig.getWriteQueueNums());
         queueData.setReadQueueNums(topicConfig.getReadQueueNums());
@@ -261,12 +267,12 @@ public class RouteInfoManager {
         queueData.setTopicSysFlag(topicConfig.getTopicSysFlag());
 
         Map<String, QueueData> queueDataMap = this.topicQueueTable.get(topicConfig.getTopicName());
-        if (null == queueDataMap) {
+        if (null == queueDataMap) { // 对于首次注册的 Topic 来说会走到这里, 并对 Map 的 Value queueDataMap 做了一个初始化
             queueDataMap = new HashMap<>();
             queueDataMap.put(queueData.getBrokerName(), queueData);
             this.topicQueueTable.put(topicConfig.getTopicName(), queueDataMap);
             log.info("new topic registered, {} {}", topicConfig.getTopicName(), queueData);
-        } else {
+        } else { // 这里最大的区别在于打的日志不同
             QueueData old = queueDataMap.put(queueData.getBrokerName(), queueData);
             if (old != null && !old.equals(queueData)) {
                 log.info("topic changed, {} OLD: {} NEW: {}", topicConfig.getTopicName(), old,
@@ -465,6 +471,10 @@ public class RouteInfoManager {
         return null;
     }
 
+    /**
+     * 周期性地清理掉已经失效的 Broker
+     * @return
+     */
     public int scanNotActiveBroker() {
         int removeCount = 0;
         Iterator<Entry<String, BrokerLiveInfo>> it = this.brokerLiveTable.entrySet().iterator();

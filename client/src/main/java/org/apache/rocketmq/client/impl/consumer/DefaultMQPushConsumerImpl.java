@@ -579,7 +579,7 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                     this.defaultMQPushConsumer.getMessageModel(), this.defaultMQPushConsumer.isUnitMode());
                 this.serviceState = ServiceState.START_FAILED;
 
-                this.checkConfig();
+                this.checkConfig(); // 检查参数
 
                 this.copySubscription();
 
@@ -594,6 +594,8 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                 this.rebalanceImpl.setAllocateMessageQueueStrategy(this.defaultMQPushConsumer.getAllocateMessageQueueStrategy());
                 this.rebalanceImpl.setmQClientFactory(this.mQClientFactory);
 
+                // 消息拉取的方式有两种：Consumer 主动拉、Broker 主动推
+                // 无论是推、还是拉，底层的实现都是 PullAPIWrapper
                 this.pullAPIWrapper = new PullAPIWrapper(
                     mQClientFactory,
                     this.defaultMQPushConsumer.getConsumerGroup(), isUnitMode());
@@ -603,10 +605,14 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
                     this.offsetStore = this.defaultMQPushConsumer.getOffsetStore();
                 } else {
                     switch (this.defaultMQPushConsumer.getMessageModel()) {
-                        case BROADCASTING:
+                        case BROADCASTING: // 广播消费
+                            // 将消费进度存储在 Consumer 本地，Consumer 会在磁盘上生成文件以保存进度
                             this.offsetStore = new LocalFileOffsetStore(this.mQClientFactory, this.defaultMQPushConsumer.getConsumerGroup());
                             break;
-                        case CLUSTERING:
+                        case CLUSTERING: // 集群消费
+                            // 将消费进度保存在远端的 Broker
+                            // CLUSTERING 会把一个 ConsumerGroup 中的所有 Consumer 当作一个整体，
+                            // ID 为 100 的 Message 只会被 ConsumerGroup 中的任意 Consumer 消费一次
                             this.offsetStore = new RemoteBrokerOffsetStore(this.mQClientFactory, this.defaultMQPushConsumer.getConsumerGroup());
                             break;
                         default:
@@ -654,8 +660,11 @@ public class DefaultMQPushConsumerImpl implements MQConsumerInner {
 
         this.updateTopicSubscribeInfoWhenSubscriptionChanged();
         this.mQClientFactory.checkClientInBroker();
-        this.mQClientFactory.sendHeartbeatToAllBrokerWithLock();
-        this.mQClientFactory.rebalanceImmediately();
+        // MQClientInstance 中启动的只是定时任务，以保证后续持续地发送心跳。
+        // 如果不立即发送一次心跳，那么 Consumer 上线，再到 Broker 感知到它就会有 1 秒的延迟。
+        this.mQClientFactory.sendHeartbeatToAllBrokerWithLock(); // 立即给所有的 Broker 发送一次心跳
+        // 无论当前这个 Consumer 是之前已经有消费记录的实例，还是一个全新的实例，它的加入都会打破原有的 MessageQueue 分配
+        this.mQClientFactory.rebalanceImmediately(); // 立即执行一次 Rebalance
     }
 
     private void checkConfig() throws MQClientException {

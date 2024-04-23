@@ -127,6 +127,8 @@ public class ScheduleMessageService extends ConfigManager {
 
     public void start() {
         if (started.compareAndSet(false, true)) {
+            // Broker 会从和 consumerOffset.json 同目录下的 delayOffset.json 当中加载延迟队列的消费进度，
+            // 因为从其中取出 Message 再投递到指定 Topic 本质上也是一个消费操作，既然是消费操作那自然要记录进度
             this.load();
             this.deliverExecutorService = new ScheduledThreadPoolExecutor(this.maxDelayLevel, new ThreadFactoryImpl("ScheduleMessageTimerThread_"));
             if (this.enableAsyncDeliver) {
@@ -379,6 +381,8 @@ public class ScheduleMessageService extends ConfigManager {
         }
 
         public void executeOnTimeup() {
+            // topic 为 SCHEDULE_TOPIC_XXXX
+            // queueId 是 delayLevel2QueueId(delayLevel) 经过对 delayLevel 减 1 得到的
             ConsumeQueue cq =
                 ScheduleMessageService.this.defaultMessageStore.findConsumeQueue(TopicValidator.RMQ_SYS_SCHEDULE_TOPIC,
                     delayLevel2QueueId(delayLevel));
@@ -431,7 +435,7 @@ public class ScheduleMessageService extends ConfigManager {
                     nextOffset = offset + (i / ConsumeQueue.CQ_STORE_UNIT_SIZE);
 
                     long countdown = deliverTimestamp - now;
-                    if (countdown > 0) {
+                    if (countdown > 0) { // countdown > 0 是否成立，成立说明还没到时间，就等待一会儿由下个定时任务来执行
                         this.scheduleNextTimerTask(nextOffset, DELAY_FOR_A_WHILE);
                         return;
                     }

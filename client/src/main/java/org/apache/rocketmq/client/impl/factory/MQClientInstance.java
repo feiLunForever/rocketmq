@@ -255,7 +255,7 @@ public class MQClientInstance {
 
     private void startScheduledTask() {
         if (null == this.clientConfig.getNamesrvAddr()) {
-            this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+            this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() { // 获取 NameServer 的地址
 
                 @Override
                 public void run() {
@@ -268,7 +268,12 @@ public class MQClientInstance {
             }, 1000 * 10, 1000 * 60 * 2, TimeUnit.MILLISECONDS);
         }
 
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+        /*
+          MQClientInstance 在运行这部分更新数据的逻辑是不会关心是 Producer 还是 Consumer，
+          它会从两个 Table 中解析出所有的 Topic 的列表，然后批量地去 NameServer 更新数据，
+          因为无论是 Producer 还是 Consumer 都需要使用到这些元数据。
+         */
+        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() { // 从 NameServer 更新本地维护的 Topic 相关数据
 
             @Override
             public void run() {
@@ -285,15 +290,15 @@ public class MQClientInstance {
             @Override
             public void run() {
                 try {
-                    MQClientInstance.this.cleanOfflineBroker();
-                    MQClientInstance.this.sendHeartbeatToAllBrokerWithLock();
+                    MQClientInstance.this.cleanOfflineBroker(); // 清理无效的、下线的 Broker
+                    MQClientInstance.this.sendHeartbeatToAllBrokerWithLock(); // 向所有 Broker 发送心跳
                 } catch (Exception e) {
                     log.error("ScheduledTask sendHeartbeatToAllBroker exception", e);
                 }
             }
         }, 1000, this.clientConfig.getHeartbeatBrokerInterval(), TimeUnit.MILLISECONDS);
 
-        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+        this.scheduledExecutorService.scheduleAtFixedRate(new Runnable() { // 持久化 Offset（如果是 Consumer 的话）
 
             @Override
             public void run() {
@@ -465,6 +470,14 @@ public class MQClientInstance {
         }
     }
 
+    /**
+     * 一来告诉 Broker 我还活着，
+     * 二来定时刷新 Broker 存的客户端数据。
+     * 发送心跳的可以是 Producer，也可以是 Consumer，具体看谁在使用 MQClientInstance。
+     *
+     * 如果是 Producer，那么心跳所包含的数据很少，就只有当前客户端的所有生产者组。
+     * 如果是 Consumer，那数据就多了，比如都有哪些消费者组的名称、消费的模式是广播还是集群、从哪里开始消费数据、消费者消费的 Topic 的简要数据等。
+     */
     public void sendHeartbeatToAllBrokerWithLock() {
         if (this.lockHeartbeat.tryLock()) {
             try {
@@ -480,6 +493,11 @@ public class MQClientInstance {
         }
     }
 
+    /**
+     * 如果当前客户端是 Consumer，就会将当前消费到哪儿了持久化起来，不然下次重启就不知道从哪里开始，从头开始？
+     * 那已经消费过的消息再消费一次不就变成重复消费了吗？
+     * 所以定时持久化 Offset 是非常必要的一个操作。
+     */
     private void persistAllConsumerOffset() {
         Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
         while (it.hasNext()) {
@@ -654,13 +672,14 @@ public class MQClientInstance {
 
                             // Update sub info
                             if (!consumerTable.isEmpty()) {
+                                // 从 topicRouteData 当中提取 MessageQueue 的 Set
                                 Set<MessageQueue> subscribeInfo = topicRouteData2TopicSubscribeInfo(topic, topicRouteData);
                                 Iterator<Entry<String, MQConsumerInner>> it = this.consumerTable.entrySet().iterator();
                                 while (it.hasNext()) {
                                     Entry<String, MQConsumerInner> entry = it.next();
                                     MQConsumerInner impl = entry.getValue();
                                     if (impl != null) {
-                                        impl.updateTopicSubscribeInfo(topic, subscribeInfo);
+                                        impl.updateTopicSubscribeInfo(topic, subscribeInfo); // 更新 MessageQueue
                                     }
                                 }
                             }

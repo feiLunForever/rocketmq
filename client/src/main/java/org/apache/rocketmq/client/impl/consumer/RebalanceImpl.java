@@ -41,6 +41,12 @@ import org.apache.rocketmq.common.protocol.heartbeat.ConsumeType;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.apache.rocketmq.common.protocol.heartbeat.SubscriptionData;
 
+/**
+ * 三个地方会触发 reblance
+ *  1. 在 Consumer 启动时会立即进行一次 Rebalance
+ *  2. Consumer执行完Rebalance后 会注册一个定时任务每隔 20 秒就周期性地执行一次 Rebalance
+ *  3. Broker 则是在收到 Consumer 的心跳、判断有新的 Consumer 加入时，会向当前 ConsumerGroup 下所有的 Consumer 实例发送请求，要求它们重新执行 Rebalance
+ */
 public abstract class RebalanceImpl {
     protected static final InternalLogger log = ClientLogger.getLog();
     protected final ConcurrentMap<MessageQueue, ProcessQueue> processQueueTable = new ConcurrentHashMap<MessageQueue, ProcessQueue>(64);
@@ -214,7 +220,12 @@ public abstract class RebalanceImpl {
         }
     }
 
+    /**
+     * 先找到当前的 Consumer，然后找到其订阅的所有的 Topic，然后对这些 Topic 分别执行 Rebalance
+     * @param isOrder
+     */
     public void doRebalance(final boolean isOrder) {
+        // Key -> Topic，Value -> Topic 相关的订阅数据
         Map<String, SubscriptionData> subTable = this.getSubscriptionInner();
         if (subTable != null) {
             for (final Map.Entry<String, SubscriptionData> entry : subTable.entrySet()) {
@@ -260,6 +271,7 @@ public abstract class RebalanceImpl {
                 // 从本地内存中获取该topic下的消息消费队列集合
                 Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
                 // 根据topic和consumerGroup为向Broker端发送获取该消费组下消费者Id列表的 RPC 通信请求
+                // 通过 ConsumerGroup 的名称获取到所有的 Consumer
                 List<String> cidAll = this.mQClientFactory.findConsumerIdList(topic, consumerGroup);
                 if (null == mqSet) {
                     if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
@@ -282,7 +294,7 @@ public abstract class RebalanceImpl {
 
                     List<MessageQueue> allocateResult = null; // 按照算法策略分配队列
                     try {
-                        allocateResult = strategy.allocate(
+                        allocateResult = strategy.allocate( // 执行分配的具体逻辑
                             this.consumerGroup,
                             this.mQClientFactory.getClientId(),
                             mqAll,

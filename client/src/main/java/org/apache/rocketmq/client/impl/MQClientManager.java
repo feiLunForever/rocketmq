@@ -45,7 +45,8 @@ public class MQClientManager {
     }
 
     public MQClientInstance getOrCreateMQClientInstance(final ClientConfig clientConfig, RPCHook rpcHook) {
-        String clientId = clientConfig.buildMQClientId(); // 生成 clientId
+        // 生成 clientId
+        String clientId = clientConfig.buildMQClientId(); // 唯一标识 : ${IP 地址}@${InstanceName}
         MQClientInstance instance = this.factoryTable.get(clientId); // 从这个 table 里先获取一次
         if (null == instance) { // 第一次进来, table 肯定没有数据, 所以它一定是 null
             instance = // 所以肯定会进到这里来, 调用构造函数将其实例化出来

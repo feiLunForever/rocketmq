@@ -278,7 +278,7 @@ public class DefaultMQPushConsumer extends ClientConfig implements MQPushConsume
      * @param consumerGroup Consumer group.
      */
     public DefaultMQPushConsumer(final String consumerGroup) {
-        this(null, consumerGroup, null, new AllocateMessageQueueAveragely());
+        this(null, consumerGroup, null, new AllocateMessageQueueAveragely()); // 平均哈希队列算法
     }
 
     /**

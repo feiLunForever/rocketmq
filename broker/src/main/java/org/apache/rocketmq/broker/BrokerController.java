@@ -241,11 +241,11 @@ public class BrokerController {
     }
 
     public boolean initialize() throws CloneNotSupportedException {
-        boolean result = this.topicConfigManager.load();
+        boolean result = this.topicConfigManager.load(); // -> topic.json
 
-        result = result && this.consumerOffsetManager.load();
-        result = result && this.subscriptionGroupManager.load();
-        result = result && this.consumerFilterManager.load();
+        result = result && this.consumerOffsetManager.load(); // -> consumerOffset.json
+        result = result && this.subscriptionGroupManager.load(); // -> subscriptionGroup.json
+        result = result && this.consumerFilterManager.load(); // -> consumerFilter.json
 
         if (result) {
             try {

@@ -44,7 +44,7 @@ public class MappedFileQueue {
 
     private final AllocateMappedFileService allocateMappedFileService;
 
-    protected long flushedWhere = 0;
+    protected long flushedWhere = 0; // 代表下次刷数据的 Offset
     private long committedWhere = 0;
 
     private volatile long storeTimestamp = 0;
@@ -220,7 +220,10 @@ public class MappedFileQueue {
     }
 
     protected MappedFile tryCreateMappedFile(long createOffset) {
+        // /Users/jiangbolun/home/rocketmqnamesrv/store/commitlog/00000000000000000000
         String nextFilePath = this.storePath + File.separator + UtilAll.offset2FileName(createOffset);
+        // /Users/jiangbolun/home/rocketmqnamesrv/store/commitlog/00000000001073741824
+        // 1024 * 1024 * 1024 = 1073741824 = 1G
         String nextNextFilePath = this.storePath + File.separator + UtilAll.offset2FileName(createOffset
                 + this.mappedFileSize);
         return doCreateMappedFile(nextFilePath, nextNextFilePath);

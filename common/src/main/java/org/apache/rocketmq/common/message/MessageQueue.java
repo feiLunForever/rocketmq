@@ -24,6 +24,10 @@ public class MessageQueue implements Comparable<MessageQueue>, Serializable {
     private String brokerName;
     private int queueId;
 
+    /**
+     * BrokerName、QueueId 可以唯一确定一个 MessageQueue
+     */
+
     public MessageQueue() {
 
     }
