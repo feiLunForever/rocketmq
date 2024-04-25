@@ -268,10 +268,9 @@ public abstract class RebalanceImpl {
                 break;
             }
             case CLUSTERING: { // 集群模式
-                // 从本地内存中获取该topic下的消息消费队列集合
+                // 查topic下的消息队列
                 Set<MessageQueue> mqSet = this.topicSubscribeInfoTable.get(topic);
-                // 根据topic和consumerGroup为向Broker端发送获取该消费组下消费者Id列表的 RPC 通信请求
-                // 通过 ConsumerGroup 的名称获取到所有的 Consumer
+                // 查询topic下的所有消费者
                 List<String> cidAll = this.mQClientFactory.findConsumerIdList(topic, consumerGroup);
                 if (null == mqSet) {
                     if (!topic.startsWith(MixAll.RETRY_GROUP_TOPIC_PREFIX)) {
@@ -290,7 +289,7 @@ public abstract class RebalanceImpl {
                     Collections.sort(mqAll);
                     Collections.sort(cidAll);
 
-                    AllocateMessageQueueStrategy strategy = this.allocateMessageQueueStrategy;
+                    AllocateMessageQueueStrategy strategy = this.allocateMessageQueueStrategy; // 负载均衡组件
 
                     List<MessageQueue> allocateResult = null; // 按照算法策略分配队列
                     try {
@@ -310,9 +309,10 @@ public abstract class RebalanceImpl {
                         allocateResultSet.addAll(allocateResult);
                     }
 
+                    // 负载均衡执行结束后，判断是否有新的消费策略变化，更新拉取策略
                     // 在负载均衡中更新 ProcessQueueTable
                     boolean changed = this.updateProcessQueueTableInRebalance(topic, allocateResultSet, isOrder);
-                    if (changed) {
+                    if (changed) { // 发送更新通知
                         log.info(
                             "rebalanced result changed. allocateMessageQueueStrategyName={}, group={}, topic={}, clientId={}, mqAllSize={}, cidAllSize={}, rebalanceResultSize={}, rebalanceResultSet={}",
                             strategy.getName(), consumerGroup, topic, this.mQClientFactory.getClientId(), mqSet.size(), cidAll.size(),
